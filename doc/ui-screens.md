@@ -5,7 +5,7 @@ This is structured so your designer (Figma) or frontend team (Next.js + Tailwind
 
 # UI SCREEN SPECIFICATION
 
-# Multi-Vendor Marketplace Platform
+# Virsa Multi-Vendor Marketplace Platform
 
 ---
 
@@ -436,11 +436,15 @@ Global Components:
 
 ## Color System
 
-Primary: Brand color
-Success: Green
-Warning: Yellow
-Danger: Red
-Info: Blue
+Primary: #47704C (Forest Green - from Virsa logo)
+Secondary: #FFD242 (Golden Yellow - from Virsa logo)
+Accent: #E7B957 (Warm Gold - from Virsa logo)
+Success: #10B981 (Green)
+Warning: #F59E0B (Amber)
+Danger: #EF4444 (Red)
+Info: #3B82F6 (Blue)
+Neutral: #6B7280 (Gray)
+Background Light: #F7EBA3 (Cream - from Virsa logo)
 
 ---
 

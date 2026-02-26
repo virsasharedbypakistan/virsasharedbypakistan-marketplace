@@ -4,7 +4,7 @@ Below is the **Technical Requirements Document (TRD)** for your **Multi-Vendor M
 
 # Technical Requirements Document (TRD)
 
-# Multi-Vendor Marketplace Platform
+# Virsa Multi-Vendor Marketplace Platform
 
 ---
 

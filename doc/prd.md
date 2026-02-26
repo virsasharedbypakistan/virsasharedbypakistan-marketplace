@@ -12,7 +12,7 @@ Below is a **complete Product Requirements Document (PRD)** for your **Multi-Ven
 
 ## 1.1 Product Name
 
-Multi-Vendor Marketplace Platform (working title)
+Virsa Multi-Vendor Marketplace Platform
 
 ## 1.2 Product Description
 
