@@ -69,7 +69,7 @@ export default function VendorProductsPage() {
                                         <span className="font-medium text-gray-900">{item === 2 ? "Out of Stock" : `${item * 14} in stock`}</span>
                                     </td>
                                     <td className="p-4 md:px-6 md:py-4">
-                                        <span className="font-bold text-gray-900">${199.99 * item}</span>
+                                        <span className="font-bold text-gray-900">Rs {199.99 * item}</span>
                                     </td>
                                     <td className="p-4 md:px-6 md:py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">

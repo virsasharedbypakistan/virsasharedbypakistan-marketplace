@@ -109,7 +109,7 @@ export default function CheckoutPage() {
                                             <h3 className="font-bold text-gray-900 text-sm line-clamp-2">
                                                 {item === 1 ? "Premium Wireless Noise-Cancelling Headphones Pro" : "Minimalist Mechanical Keyboard RGB"}
                                             </h3>
-                                            <span className="font-bold text-gray-900 text-sm mt-1">${item === 1 ? "199.99" : "129.99"}</span>
+                                            <span className="font-bold text-gray-900 text-sm mt-1">Rs {item === 1 ? "199.99" : "129.99"}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -118,22 +118,22 @@ export default function CheckoutPage() {
                             <div className="space-y-4 text-sm mb-6 pt-6 border-t border-gray-100">
                                 <div className="flex justify-between items-center text-gray-600">
                                     <span>Subtotal</span>
-                                    <span className="font-medium text-gray-900">$459.97</span>
+                                    <span className="font-medium text-gray-900">Rs 459.97</span>
                                 </div>
                                 <div className="flex justify-between items-center text-gray-600">
                                     <span>Shipping</span>
-                                    <span className="font-medium text-gray-900">$12.50</span>
+                                    <span className="font-medium text-gray-900">Rs 12.50</span>
                                 </div>
                                 <div className="flex justify-between items-center text-gray-600">
                                     <span>Taxes</span>
-                                    <span className="font-medium text-gray-900">$36.80</span>
+                                    <span className="font-medium text-gray-900">Rs 36.80</span>
                                 </div>
                             </div>
 
                             <div className="flex flex-col mb-8 pt-6 border-t border-gray-100">
                                 <div className="flex justify-between items-end mb-1">
                                     <span className="text-base font-bold text-gray-900">Total</span>
-                                    <span className="text-3xl font-black text-gray-900 tracking-tight">$509.27</span>
+                                    <span className="text-3xl font-black text-gray-900 tracking-tight">Rs 509.27</span>
                                 </div>
                             </div>
 

@@ -67,9 +67,7 @@ export default function AdminCustomersPage() {
                                     <td className="p-4 md:px-6 md:py-4 text-center">
                                         <span className="font-bold text-gray-700 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200">{item * 3}</span>
                                     </td>
-                                    <td className="p-4 md:px-6 md:py-4">
-                                        <span className="font-black text-gray-900">${(item * 249.50).toFixed(2)}</span>
-                                    </td>
+                                    <span className="font-black text-gray-900">Rs {(item * 249.50).toFixed(2)}</span>
                                     <td className="p-4 md:px-6 md:py-4 text-xs text-gray-600">
                                         {item <= 2 ? 'Today' : `${item} days ago`}
                                     </td>

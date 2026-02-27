@@ -158,8 +158,8 @@ export default function Home() {
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-gray-900">$199.99</span>
-                      {item === 1 && <span className="text-sm font-medium text-gray-400 line-through decoration-gray-300 decoration-2">$249.99</span>}
+                      <span className="text-2xl font-black text-gray-900">Rs 199.99</span>
+                      {item === 1 && <span className="text-sm font-medium text-gray-400 line-through decoration-gray-300 decoration-2">Rs 249.99</span>}
                     </div>
                   </div>
                 </div>

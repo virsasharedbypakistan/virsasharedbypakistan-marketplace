@@ -67,12 +67,12 @@ export default function ProductsPage() {
                                     <input type="range" min="0" max="1000" className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-virsa-primary" />
                                     <div className="flex items-center gap-4">
                                         <div className="flex-1 relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rs </span>
                                             <input type="number" placeholder="Min" className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-virsa-primary" />
                                         </div>
                                         <span className="text-gray-400">-</span>
                                         <div className="flex-1 relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rs </span>
                                             <input type="number" placeholder="Max" className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-virsa-primary" />
                                         </div>
                                     </div>
@@ -120,7 +120,7 @@ export default function ProductsPage() {
                                 Electronics <button className="hover:text-red-500"><X className="w-3 h-3" /></button>
                             </span>
                             <span className="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs font-bold text-gray-700 flex items-center gap-2 shadow-sm">
-                                $50 - $250 <button className="hover:text-red-500"><X className="w-3 h-3" /></button>
+                                Rs 50 - Rs 250 <button className="hover:text-red-500"><X className="w-3 h-3" /></button>
                             </span>
                         </div>
 
@@ -162,8 +162,8 @@ export default function ProductsPage() {
                                         </div>
 
                                         <div className="flex items-baseline gap-2 pt-3 border-t border-gray-100">
-                                            <span className="text-xl font-black text-gray-900 tracking-tight">${item * 19}.99</span>
-                                            {item % 3 === 0 && <span className="text-xs font-bold text-gray-400 line-through">${item * 29}.99</span>}
+                                            <span className="text-xl font-black text-gray-900 tracking-tight">Rs {item * 19}.99</span>
+                                            {item % 3 === 0 && <span className="text-xs font-bold text-gray-400 line-through">Rs {item * 29}.99</span>}
                                         </div>
                                     </div>
                                 </div>

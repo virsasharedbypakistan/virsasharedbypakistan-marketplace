@@ -3,7 +3,7 @@ import Image from "next/image";
 
 export default function VendorDashboardPage() {
     const stats = [
-        { name: "Total Revenue", value: "$12,450.00", icon: DollarSign, trend: "+12.5%", color: "text-emerald-600", bg: "bg-emerald-50" },
+        { name: "Total Revenue", value: "Rs 12,450.00", icon: DollarSign, trend: "+12.5%", color: "text-emerald-600", bg: "bg-emerald-50" },
         { name: "Active Products", value: "145", icon: Package, trend: "+3", color: "text-blue-600", bg: "bg-blue-50" },
         { name: "Total Orders", value: "842", icon: ShoppingBag, trend: "+24.0%", color: "text-indigo-600", bg: "bg-indigo-50" },
         { name: "Store Views", value: "14.2k", icon: Users, trend: "+18.2%", color: "text-amber-600", bg: "bg-amber-50" },
@@ -54,9 +54,7 @@ export default function VendorDashboardPage() {
                         <div className="absolute inset-0 flex items-end justify-between px-4 pb-0 opacity-80">
                             {[40, 60, 45, 80, 55, 90, 75].map((h, i) => (
                                 <div key={i} className="w-[10%] bg-virsa-primary rounded-t-sm hover:opacity-80 transition-opacity cursor-pointer relative group" style={{ height: `${h}%` }}>
-                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-                                        ${h * 84}
-                                    </div>
+                                    Rs {h * 84}
                                 </div>
                             ))}
                         </div>
@@ -83,8 +81,6 @@ export default function VendorDashboardPage() {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <span className="text-sm font-bold text-virsa-primary">${(129.99 * order).toFixed(2)}</span>
-                                    <p className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full mt-1">Processing</p>
                                 </div>
                             </div>
                         ))}

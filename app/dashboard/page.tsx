@@ -57,7 +57,7 @@ export default function CustomerDashboardPage() {
                                     <p className="text-sm text-gray-500 mt-1">Sold by: Tech Haven Official</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-gray-900">$199.99</p>
+                                    <p className="font-bold text-gray-900">Rs 199.99</p>
                                     <p className="text-sm text-gray-500">Qty: 1</p>
                                 </div>
                             </div>

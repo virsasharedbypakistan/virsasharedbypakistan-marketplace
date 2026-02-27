@@ -100,7 +100,7 @@ export default function VendorOrdersPage() {
                                         )}
                                     </td>
                                     <td className="p-4 md:px-6 md:py-4 border-l border-gray-50/50">
-                                        <span className="font-black text-gray-900">${129.99 * item}</span>
+                                        <span className="font-black text-gray-900">Rs {129.99 * item}</span>
                                         <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">Paid</p>
                                     </td>
                                     <td className="p-4 md:px-6 md:py-4 text-right">

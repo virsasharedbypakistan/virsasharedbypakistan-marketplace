@@ -2,7 +2,7 @@ import { ArrowUpRight, ArrowDownRight, Users, Store, LineChart, Activity, Shoppi
 
 export default function AdminDashboardPage() {
     const kpis = [
-        { title: "Total Revenue", value: "$124,500.00", icon: LineChart, trend: "up", percent: "12.5%", bg: "bg-emerald-500", text: "text-white" },
+        { title: "Total Revenue", value: "Rs 124,500.00", icon: LineChart, trend: "up", percent: "12.5%", bg: "bg-emerald-500", text: "text-white" },
         { title: "Active Vendors", value: "342", icon: Store, trend: "up", percent: "4.2%", bg: "bg-white", border: "border border-[#E2E8F0]" },
         { title: "Total Customers", value: "45,210", icon: Users, trend: "up", percent: "8.1%", bg: "bg-white", border: "border border-[#E2E8F0]" },
         { title: "Total Orders", value: "12,482", icon: ShoppingBag, trend: "down", percent: "1.2%", bg: "bg-white", border: "border border-[#E2E8F0]" },

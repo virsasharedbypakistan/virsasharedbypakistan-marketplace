@@ -49,12 +49,12 @@ export default function CartPage() {
 
                                         {/* Price (Desktop) */}
                                         <div className="md:col-span-2 text-center hidden md:block">
-                                            <span className="font-bold text-gray-900">${item === 1 ? "199.99" : "129.99"}</span>
+                                            <span className="font-bold text-gray-900">Rs {item === 1 ? "199.99" : "129.99"}</span>
                                         </div>
 
                                         {/* Quantity & Mobile Price */}
                                         <div className="md:col-span-2 flex items-center justify-between w-full md:justify-center">
-                                            <div className="md:hidden font-bold text-gray-900">${item === 1 ? "199.99" : "129.99"}</div>
+                                            <div className="md:hidden font-bold text-gray-900">Rs {item === 1 ? "199.99" : "129.99"}</div>
                                             <div className="flex items-center border border-gray-200 bg-gray-50 rounded-xl p-1 w-28">
                                                 <button className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition-all border border-transparent hover:border-gray-200">
                                                     <Minus className="w-3 h-3" />
@@ -68,7 +68,7 @@ export default function CartPage() {
 
                                         {/* Total (Desktop) */}
                                         <div className="md:col-span-2 text-right hidden md:block">
-                                            <span className="font-black text-gray-900 text-lg">${item === 1 ? "199.99" : "259.98"}</span>
+                                            <span className="font-black text-gray-900 text-lg">Rs {item === 1 ? "199.99" : "259.98"}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -103,22 +103,22 @@ export default function CartPage() {
                             <div className="space-y-4 text-sm mb-6 pb-6 border-b border-gray-100">
                                 <div className="flex justify-between items-center text-gray-600">
                                     <span>Subtotal (3 items)</span>
-                                    <span className="font-medium text-gray-900">$459.97</span>
+                                    <span className="font-medium text-gray-900">Rs 459.97</span>
                                 </div>
                                 <div className="flex justify-between items-center text-gray-600">
                                     <span>Shipping Estimate</span>
-                                    <span className="font-medium text-gray-900">$12.50</span>
+                                    <span className="font-medium text-gray-900">Rs 12.50</span>
                                 </div>
                                 <div className="flex justify-between items-center text-gray-600">
                                     <span>Tax Estimate</span>
-                                    <span className="font-medium text-gray-900">$36.80</span>
+                                    <span className="font-medium text-gray-900">Rs 36.80</span>
                                 </div>
                             </div>
 
                             <div className="flex justify-between items-end mb-8">
                                 <span className="text-base font-bold text-gray-900">Total</span>
                                 <div className="text-right">
-                                    <span className="text-3xl font-black text-gray-900 tracking-tight">$509.27</span>
+                                    <span className="text-3xl font-black text-gray-900 tracking-tight">Rs 509.27</span>
                                     <p className="text-xs text-gray-500 mt-1">Includes all taxes</p>
                                 </div>
                             </div>

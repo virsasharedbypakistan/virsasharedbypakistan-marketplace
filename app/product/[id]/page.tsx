@@ -86,9 +86,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                             </div>
 
                             <div className="flex items-end gap-3 mb-8">
-                                <span className="text-4xl font-black text-gray-900 tracking-tight">$199.99</span>
-                                <span className="text-lg font-bold text-gray-400 line-through mb-1">$249.99</span>
-                                <span className="text-sm font-bold text-virsa-danger bg-virsa-danger/10 px-2 py-1 rounded-md mb-1 ml-2">Save $50.00</span>
+                                <span className="text-4xl font-black text-gray-900 tracking-tight">Rs 199.99</span>
+                                <span className="text-lg font-bold text-gray-400 line-through mb-1">Rs 249.99</span>
+                                <span className="text-sm font-bold text-virsa-danger bg-virsa-danger/10 px-2 py-1 rounded-md mb-1 ml-2">Save Rs 50.00</span>
                             </div>
 
                             <p className="text-gray-600 leading-relaxed mb-8 text-lg font-light">
@@ -156,7 +156,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                                 </div>
                                 <div>
                                     <h4 className="text-xs font-bold text-gray-900">Free Shipping</h4>
-                                    <p className="text-[10px] text-gray-500">On orders over $50</p>
+                                    <p className="text-[10px] text-gray-500">On orders over Rs 50</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
