@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, ShoppingBag, Package, DollarSign, ArrowDownToLine, Settings, LogOut, Store } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, DollarSign, Settings, LogOut, Store } from "lucide-react";
 
 export default function VendorDashboardLayout({
     children,
@@ -11,7 +11,6 @@ export default function VendorDashboardLayout({
         { name: "Products", href: "/vendor/dashboard/products", icon: Package },
         { name: "Orders", href: "/vendor/dashboard/orders", icon: ShoppingBag },
         { name: "Earnings", href: "/vendor/dashboard/earnings", icon: DollarSign },
-        { name: "Withdrawals", href: "/vendor/dashboard/withdrawals", icon: ArrowDownToLine },
         { name: "Settings", href: "/vendor/dashboard/settings", icon: Settings },
     ];
 

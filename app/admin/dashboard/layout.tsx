@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CopyPlus, Store, Users, ShoppingBag, Wallet, Settings, LogOut, Bell, Search } from "lucide-react";
+import { CopyPlus, Store, Users, ShoppingBag, LineChart, Settings, LogOut, Bell, Search } from "lucide-react";
 
 export default function AdminDashboardLayout({
     children,
@@ -11,7 +11,7 @@ export default function AdminDashboardLayout({
         { name: "Vendors", href: "/admin/dashboard/vendors", icon: Store },
         { name: "Customers", href: "/admin/dashboard/customers", icon: Users },
         { name: "All Orders", href: "/admin/dashboard/orders", icon: ShoppingBag },
-        { name: "Withdrawals", href: "/admin/dashboard/withdrawals", icon: Wallet },
+        { name: "Earnings", href: "/admin/dashboard/earnings", icon: LineChart },
         { name: "Settings", href: "/admin/dashboard/settings", icon: Settings },
     ];
 

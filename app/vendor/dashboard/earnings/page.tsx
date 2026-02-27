@@ -12,7 +12,7 @@ export default function VendorEarningsPage() {
                     <button className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors w-full sm:w-auto shadow-sm">
                         <Download className="w-4 h-4" /> Export CSV
                     </button>
-                    <select className="px-4 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium bg-white hover:bg-gray-50 transition-colors focus:outline-virsa-primary appearance-none cursor-pointer">
+                    <select className="px-4 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none cursor-pointer">
                         <option>Last 30 Days</option>
                         <option>This Month</option>
                         <option>Last Month</option>
@@ -33,7 +33,7 @@ export default function VendorEarningsPage() {
                         </span>
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-500 mb-1">Available Balance</p>
+                        <p className="text-sm font-medium text-gray-500 mb-1">COD Collected (Pending Settlement)</p>
                         <h3 className="text-3xl font-black text-gray-900 tracking-tight">Rs 45,250.00</h3>
                     </div>
                 </div>
@@ -45,18 +45,18 @@ export default function VendorEarningsPage() {
                         </div>
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-500 mb-1">Pending Clearance</p>
-                        <h3 className="text-3xl font-black text-gray-900 tracking-tight">Rs 12,800.00</h3>
+                        <p className="text-sm font-medium text-gray-500 mb-1">Settled This Month</p>
+                        <h3 className="text-3xl font-black text-gray-900 tracking-tight">Rs 32,800.00</h3>
                     </div>
                 </div>
 
                 <div className="bg-gradient-to-br from-virsa-primary to-virsa-dark rounded-[24px] p-6 shadow-md text-white flex flex-col justify-between relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                     <div className="flex justify-between items-start mb-4 relative z-10">
-                        <div className="w-12 h-12 rounded-xl bg-white/20 text-white flex items-center justify-center backdrop-blur-sm">
+                        <div className="w-12 h-12 rounded-xl bg-white/20 text-white flex items-center justify-center">
                             <TrendingUp className="w-6 h-6" />
                         </div>
-                        <span className="flex items-center gap-1 text-xs font-bold text-white/90 bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">
+                        <span className="flex items-center gap-1 text-xs font-bold text-white/90 bg-white/20 px-2 py-1 rounded-full">
                             <TrendingUp className="w-3 h-3" /> +8.2%
                         </span>
                     </div>
@@ -67,13 +67,12 @@ export default function VendorEarningsPage() {
                 </div>
             </div>
 
-            {/* Main Content Area */}
+            {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
                 {/* Transaction History */}
                 <div className="lg:col-span-2 bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                     <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                        <h2 className="text-lg font-bold text-gray-900">Recent Transactions</h2>
+                        <h2 className="text-lg font-bold text-gray-900">COD Settlement History</h2>
                         <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">
                             <Filter className="w-5 h-5" />
                         </button>
@@ -82,7 +81,7 @@ export default function VendorEarningsPage() {
                         <table className="w-full text-left min-w-[600px]">
                             <thead>
                                 <tr className="bg-gray-50/50 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
-                                    <th className="px-6 py-4">Transaction Details</th>
+                                    <th className="px-6 py-4">Order / Details</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Date</th>
                                     <th className="px-6 py-4 text-right">Amount</th>
@@ -90,11 +89,11 @@ export default function VendorEarningsPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-50 text-sm">
                                 {[
-                                    { id: "TRX-4829", desc: "Order Sale", type: "credit", status: "Cleared", date: "Today, 10:42 AM", amount: "+ Rs 4,500.00" },
-                                    { id: "TRX-4828", desc: "Order Sale", type: "credit", status: "Pending", date: "Today, 09:15 AM", amount: "+ Rs 2,800.00" },
-                                    { id: "WD-1049", desc: "Bank Withdrawal", type: "debit", status: "Completed", date: "Yesterday", amount: "- Rs 15,000.00" },
-                                    { id: "TRX-4825", desc: "Order Sale", type: "credit", status: "Cleared", date: "Oct 24, 2023", amount: "+ Rs 1,200.00" },
-                                    { id: "REF-992", desc: "Order Refund", type: "debit", status: "Processed", date: "Oct 23, 2023", amount: "- Rs 850.00" },
+                                    { id: "ORD-4829", desc: "COD Order Sale", type: "credit", status: "Settled", date: "Today", amount: "+ Rs 4,500.00" },
+                                    { id: "ORD-4828", desc: "COD Order Sale", type: "credit", status: "Pending", date: "Today", amount: "+ Rs 2,800.00" },
+                                    { id: "ORD-4825", desc: "COD Order Sale", type: "credit", status: "Settled", date: "Oct 24", amount: "+ Rs 1,200.00" },
+                                    { id: "ORD-4821", desc: "COD Order Sale", type: "credit", status: "Settled", date: "Oct 23", amount: "+ Rs 3,750.00" },
+                                    { id: "REF-992", desc: "Order Refund", type: "debit", status: "Processed", date: "Oct 23", amount: "- Rs 850.00" },
                                 ].map((trx, index) => (
                                     <tr key={index} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4">
@@ -110,16 +109,13 @@ export default function VendorEarningsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${trx.status === 'Cleared' || trx.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                    trx.status === 'Pending' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                                                        'bg-gray-100 text-gray-600 border border-gray-200'
+                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${trx.status === 'Settled' || trx.status === 'Processed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                    'bg-amber-50 text-amber-600 border border-amber-100'
                                                 }`}>
                                                 {trx.status}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-gray-500 text-sm">
-                                            {trx.date}
-                                        </td>
+                                        <td className="px-6 py-4 text-gray-500">{trx.date}</td>
                                         <td className="px-6 py-4 text-right">
                                             <span className={`font-bold ${trx.type === 'credit' ? 'text-emerald-600' : 'text-gray-900'}`}>
                                                 {trx.amount}
@@ -139,7 +135,7 @@ export default function VendorEarningsPage() {
                         {[
                             { label: "Product Sales", amount: "Rs 92,400.00", percentage: "85%", color: "bg-virsa-primary" },
                             { label: "Shipping Fees", amount: "Rs 12,500.00", percentage: "12%", color: "bg-indigo-500" },
-                            { label: "Other Adjustments", amount: "Rs 3,250.00", percentage: "3%", color: "bg-orange-500" },
+                            { label: "Other", amount: "Rs 3,250.00", percentage: "3%", color: "bg-orange-500" },
                         ].map((item, idx) => (
                             <div key={idx}>
                                 <div className="flex justify-between items-end mb-2">
@@ -155,19 +151,14 @@ export default function VendorEarningsPage() {
                             </div>
                         ))}
                     </div>
-
                     <div className="mt-8 pt-6 border-t border-gray-100">
                         <div className="flex justify-between items-center text-sm mb-2 text-gray-600">
-                            <span>Platform Fees (5%)</span>
+                            <span>Platform Commission (5%)</span>
                             <span>- Rs 5,407.50</span>
                         </div>
-                        <div className="flex justify-between items-center text-sm mb-4 text-gray-600">
-                            <span>Taxes</span>
-                            <span>- Rs 1,200.00</span>
-                        </div>
-                        <div className="bg-gray-50 p-4 rounded-xl flex justify-between items-center">
+                        <div className="bg-gray-50 p-4 rounded-xl flex justify-between items-center mt-4">
                             <span className="font-bold text-gray-700">Net Earnings</span>
-                            <span className="font-black text-virsa-primary text-xl">Rs 101,542.50</span>
+                            <span className="font-black text-virsa-primary text-xl">Rs 102,742.50</span>
                         </div>
                     </div>
                 </div>
