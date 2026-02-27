@@ -1,5 +1,94 @@
+"use client";
+
 import Link from "next/link";
-import { Filter, Star, ShoppingCart, SlidersHorizontal, ChevronRight, X } from "lucide-react";
+import { Filter, Star, ShoppingCart, SlidersHorizontal, ChevronRight, X, Heart, Check } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { useWishlist } from "@/contexts/WishlistContext";
+import { useState } from "react";
+
+const PRODUCTS = [
+    { id: 1, name: "Premium Wireless Noise-Cancelling Headphones Pro", price: "Rs 19,999", priceNum: 19999, vendor: "Tech Haven PK", rating: 5, badge: null },
+    { id: 2, name: "Minimalist Mechanical Keyboard RGB Backlit", price: "Rs 12,999", priceNum: 12999, vendor: "Electronics Pro", rating: 4, badge: "New" },
+    { id: 3, name: "Portable Fast Charge Power Bank 20000mAh", price: "Rs 3,499", priceNum: 3499, vendor: "Tech Haven PK", rating: 5, badge: "Sale" },
+    { id: 4, name: "Smart Watch Series 8 with Health Monitor", price: "Rs 34,999", priceNum: 34999, vendor: "Fashion Hub", rating: 4, badge: null },
+    { id: 5, name: "Ergonomic Office Chair Lumbar Support", price: "Rs 28,500", priceNum: 28500, vendor: "Home Essentials", rating: 5, badge: "Hot" },
+    { id: 6, name: "Noise-Isolating In-Ear Monitors IEM Pro", price: "Rs 8,999", priceNum: 8999, vendor: "Electronics Pro", rating: 4, badge: null },
+    { id: 7, name: "Compact Mirrorless Camera 24MP 4K Video", price: "Rs 89,999", priceNum: 89999, vendor: "Tech Haven PK", rating: 5, badge: "New" },
+    { id: 8, name: "Stainless Steel Water Bottle 1L Insulated", price: "Rs 1,899", priceNum: 1899, vendor: "Home Essentials", rating: 4, badge: null },
+    { id: 9, name: "Gaming Mouse 16000 DPI RGB Wired", price: "Rs 4,500", priceNum: 4500, vendor: "Electronics Pro", rating: 5, badge: "Sale" },
+    { id: 10, name: "Premium Leather Laptop Bag 15 inch", price: "Rs 6,999", priceNum: 6999, vendor: "Fashion Hub", rating: 4, badge: null },
+    { id: 11, name: "Wireless Earbuds ANC Active Noise Cancelling", price: "Rs 9,999", priceNum: 9999, vendor: "Tech Haven PK", rating: 5, badge: null },
+    { id: 12, name: "Smart Home Security Camera Indoor 1080p", price: "Rs 7,500", priceNum: 7500, vendor: "Electronics Pro", rating: 4, badge: "New" },
+];
+
+function ProductCard({ item }: { item: typeof PRODUCTS[0] }) {
+    const { addItem } = useCart();
+    const { toggle, isInWishlist } = useWishlist();
+    const [added, setAdded] = useState(false);
+    const wishlisted = isInWishlist(item.id);
+
+    const handleAdd = (e: React.MouseEvent) => {
+        e.preventDefault();
+        addItem({ id: item.id, name: item.name, price: item.price, priceNum: item.priceNum, vendor: item.vendor });
+        setAdded(true);
+        setTimeout(() => setAdded(false), 1500);
+    };
+
+    const handleWishlist = (e: React.MouseEvent) => {
+        e.preventDefault();
+        toggle({ id: item.id, name: item.name, price: item.price, priceNum: item.priceNum, vendor: item.vendor, badge: item.badge });
+    };
+
+    return (
+        <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col h-full hover:-translate-y-1">
+            <Link href={`/product/${item.id}`} className="relative aspect-square bg-gray-50 flex items-center justify-center p-6 overflow-hidden block">
+                <div className="absolute inset-0 bg-virsa-light/10 mix-blend-multiply opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="w-24 h-24 bg-gray-200 rounded-full group-hover:scale-110 transition-transform duration-500 shadow-inner" />
+                {item.badge && (
+                    <div className="absolute top-4 left-4 z-10">
+                        <span className="bg-virsa-danger text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md uppercase tracking-wide">{item.badge}</span>
+                    </div>
+                )}
+                {/* Wishlist heart */}
+                <button
+                    onClick={handleWishlist}
+                    className={`absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all z-10 ${wishlisted ? 'bg-red-500 text-white' : 'bg-white text-gray-400 hover:text-red-500'}`}
+                >
+                    <Heart className={`w-4 h-4 ${wishlisted ? 'fill-current' : ''}`} />
+                </button>
+            </Link>
+
+            <div className="p-5 flex flex-col flex-1 relative">
+                {/* Add to Cart floating button */}
+                <button
+                    onClick={handleAdd}
+                    className={`absolute -top-6 right-5 w-12 h-12 rounded-full shadow-lg border border-gray-50 flex items-center justify-center transition-all duration-300 z-20 ${added ? 'bg-emerald-500 text-white' : 'bg-white text-gray-900 hover:bg-virsa-primary hover:text-white'}`}
+                    title="Add to cart"
+                >
+                    {added ? <Check className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
+                </button>
+
+                <div className="text-[11px] font-bold tracking-wider text-virsa-primary mb-2 uppercase opacity-80">{item.vendor}</div>
+                <Link href={`/product/${item.id}`}>
+                    <h3 className="font-bold text-gray-900 text-sm mb-2 line-clamp-2 hover:text-virsa-primary cursor-pointer leading-tight">{item.name}</h3>
+                </Link>
+
+                <div className="flex items-center mb-4 mt-auto">
+                    <div className="flex text-virsa-secondary">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                            <Star key={star} className={`w-3.5 h-3.5 ${star <= item.rating ? 'fill-current' : 'text-gray-200'}`} />
+                        ))}
+                    </div>
+                    <span className="text-xs font-semibold text-gray-500 ml-2">(124)</span>
+                </div>
+
+                <div className="flex items-baseline gap-2 pt-3 border-t border-gray-100">
+                    <span className="text-xl font-black text-gray-900 tracking-tight">{item.price}</span>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function ProductsPage() {
     const categories = ["Electronics", "Fashion", "Home & Garden", "Beauty", "Sports", "Toys"];
@@ -125,48 +214,8 @@ export default function ProductsPage() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((item) => (
-                                <div key={item} className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-300 group flex flex-col h-full hover:-translate-y-1">
-                                    <Link href={`/product/${item}`} className="relative aspect-square bg-gray-50 flex items-center justify-center p-6 overflow-hidden block">
-                                        <div className="absolute inset-0 bg-virsa-light/10 mix-blend-multiply opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                        {/* Placeholder for Product Image */}
-                                        <div className="w-24 h-24 bg-gray-200 rounded-full group-hover:scale-110 transition-transform duration-500 shadow-inner"></div>
-
-                                        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-                                            {item % 3 === 0 && <span className="bg-virsa-danger text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md uppercase tracking-wide">Sale</span>}
-                                            {item % 4 === 0 && <span className="bg-gradient-to-r from-virsa-primary to-[#5b8c61] text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md uppercase tracking-wide">New</span>}
-                                        </div>
-                                    </Link>
-
-                                    <div className="p-5 flex flex-col flex-1 relative">
-                                        <button className="absolute -top-6 right-5 w-12 h-12 bg-white rounded-full shadow-[0_8px_20px_rgba(0,0,0,0.12)] border border-gray-50 flex items-center justify-center text-gray-900 hover:bg-virsa-primary hover:text-white transition-all duration-300 z-20 group/btn">
-                                            <ShoppingCart className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
-                                        </button>
-
-                                        <div className="text-[11px] font-bold tracking-wider text-virsa-primary mb-2 uppercase opacity-80">
-                                            Premium Store
-                                        </div>
-                                        <Link href={`/product/${item}`}>
-                                            <h3 className="font-bold text-gray-900 text-sm mb-2 line-clamp-2 hover:text-virsa-primary cursor-pointer leading-tight group-hover:underline">
-                                                Premium Wireless Noise-Cancelling Headphones Pro Edition
-                                            </h3>
-                                        </Link>
-
-                                        <div className="flex items-center mb-4 mt-auto">
-                                            <div className="flex text-virsa-secondary">
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                    <Star key={star} className="w-3.5 h-3.5 fill-current" />
-                                                ))}
-                                            </div>
-                                            <span className="text-xs font-semibold text-gray-500 ml-2">(124)</span>
-                                        </div>
-
-                                        <div className="flex items-baseline gap-2 pt-3 border-t border-gray-100">
-                                            <span className="text-xl font-black text-gray-900 tracking-tight">Rs {item * 19}.99</span>
-                                            {item % 3 === 0 && <span className="text-xs font-bold text-gray-400 line-through">Rs {item * 29}.99</span>}
-                                        </div>
-                                    </div>
-                                </div>
+                            {PRODUCTS.map((item) => (
+                                <ProductCard key={item.id} item={item} />
                             ))}
                         </div>
 
