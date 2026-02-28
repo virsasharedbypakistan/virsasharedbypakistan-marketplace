@@ -2,10 +2,28 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Star, ShieldCheck, Truck, RotateCcw, Heart, Minus, Plus, ShoppingCart, ShoppingBag, ChevronRight, Check } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useRouter } from "next/navigation";
+
+// Per-product image gallery mapping
+const PRODUCT_IMAGES: Record<number, string[]> = {
+    1: ["/product_headphones.png", "/product_keyboard.png", "/product_watch.png", "/cat_electronics.png"],
+    2: ["/product_keyboard.png", "/product_headphones.png", "/cat_electronics.png", "/product_watch.png"],
+    3: ["/product_watch.png", "/product_headphones.png", "/product_keyboard.png", "/cat_electronics.png"],
+    4: ["/product_watch.png", "/product_keyboard.png", "/product_headphones.png", "/cat_electronics.png"],
+    5: ["/cat_home.png", "/cat_beauty.png", "/product_backpack.png", "/cat_sports.png"],
+    6: ["/product_headphones.png", "/product_watch.png", "/product_keyboard.png", "/cat_electronics.png"],
+    7: ["/cat_electronics.png", "/product_keyboard.png", "/product_headphones.png", "/product_watch.png"],
+    8: ["/cat_home.png", "/cat_beauty.png", "/cat_sports.png", "/product_backpack.png"],
+    9: ["/product_keyboard.png", "/cat_electronics.png", "/product_headphones.png", "/product_watch.png"],
+    10: ["/product_backpack.png", "/product_sneakers.png", "/cat_fashion.png", "/cat_sports.png"],
+    11: ["/product_headphones.png", "/product_keyboard.png", "/product_watch.png", "/cat_electronics.png"],
+    12: ["/cat_electronics.png", "/product_watch.png", "/product_headphones.png", "/product_keyboard.png"],
+};
+const DEFAULT_IMAGES = ["/product_headphones.png", "/product_keyboard.png", "/product_watch.png", "/cat_electronics.png"];
 
 const PRODUCT = {
     id: 1,
@@ -32,6 +50,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     const [addedToCart, setAddedToCart] = useState(false);
     const [selectedColor, setSelectedColor] = useState("black");
     const [activeTab, setActiveTab] = useState("description");
+
+    const images = PRODUCT_IMAGES[productId] ?? DEFAULT_IMAGES;
+    const [selectedImage, setSelectedImage] = useState(images[0]);
 
     const wishlisted = isInWishlist(productId);
 
@@ -69,9 +90,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
                     {/* Product Gallery */}
                     <div className="w-full lg:w-1/2 flex flex-col gap-4">
-                        <div className="aspect-square bg-gray-50 rounded-[32px] border border-gray-100 flex items-center justify-center p-8 relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-virsa-light/10 mix-blend-multiply opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="w-full h-full bg-gray-200 rounded-2xl relative z-10 shadow-inner group-hover:scale-105 transition-transform duration-700 ease-out" />
+                        {/* Main image */}
+                        <div className="aspect-square bg-gray-50 rounded-[32px] border border-gray-100 relative overflow-hidden group">
+                            <Image
+                                src={selectedImage}
+                                alt={PRODUCT.name}
+                                fill
+                                priority
+                                className="object-contain p-8 group-hover:scale-105 transition-transform duration-700 ease-out"
+                            />
 
                             <div className="absolute top-6 left-6 z-20">
                                 <span className="bg-virsa-danger text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg uppercase tracking-wide">{PRODUCT.badge}</span>
@@ -87,11 +114,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                             </div>
                         </div>
 
+                        {/* Thumbnails */}
                         <div className="grid grid-cols-4 gap-4">
-                            {[1, 2, 3, 4].map((thumb) => (
-                                <div key={thumb} className={`aspect-square rounded-2xl border-2 flex items-center justify-center cursor-pointer overflow-hidden transition-all ${thumb === 1 ? 'border-virsa-primary bg-virsa-light/10' : 'border-gray-100 bg-gray-50 hover:border-gray-300'}`}>
-                                    <div className="w-12 h-12 bg-gray-200 rounded-full" />
-                                </div>
+                            {images.map((img, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => setSelectedImage(img)}
+                                    className={`aspect-square rounded-2xl border-2 overflow-hidden relative transition-all ${selectedImage === img ? 'border-virsa-primary ring-1 ring-virsa-primary/30' : 'border-gray-100 hover:border-gray-300'}`}
+                                >
+                                    <Image src={img} alt={`View ${idx + 1}`} fill className="object-contain p-2" />
+                                </button>
                             ))}
                         </div>
                     </div>

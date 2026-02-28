@@ -1,18 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Star, ShoppingBag, TrendingUp, ShieldCheck, Truck, ShoppingCart, Laptop, Shirt, Home as HomeIcon, Sparkles, Trophy, Gamepad2 } from "lucide-react";
+import { ArrowRight, Star, ShieldCheck, Truck, TrendingUp, ShoppingCart } from "lucide-react";
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Banner */}
       <section className="relative bg-virsa-primary text-white overflow-hidden">
-        <div className="absolute inset-0 bg-black/30 z-10"></div>
-        {/* Abstract shapes for premium feel */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-          <div className="absolute -top-[30%] -right-[10%] w-[60%] h-[160%] bg-gradient-to-br from-virsa-secondary/30 to-virsa-primary/10 rotate-12 blur-3xl rounded-full"></div>
-          <div className="absolute top-[50%] -left-[20%] w-[50%] h-[120%] bg-gradient-to-tr from-virsa-accent/30 to-transparent -rotate-12 blur-[100px] rounded-full"></div>
-        </div>
+        {/* Real hero background image */}
+        <Image src="/hero_banner.png" alt="Virsa Marketplace - Discover Premium Products" fill className="object-cover object-center" priority quality={90} />
+        <div className="absolute inset-0 bg-gradient-to-r from-virsa-primary/90 via-virsa-primary/70 to-virsa-primary/40 z-10"></div>
 
         <div className="container mx-auto px-4 py-28 md:py-40 relative z-20">
           <div className="max-w-3xl">
@@ -89,19 +86,19 @@ export default function Home() {
 
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 md:gap-6">
             {[
-              { name: "Electronics", icon: Laptop, count: "1.2k+" },
-              { name: "Fashion", icon: Shirt, count: "3.5k+" },
-              { name: "Home & Garden", icon: HomeIcon, count: "800+" },
-              { name: "Beauty", icon: Sparkles, count: "1.5k+" },
-              { name: "Sports", icon: Trophy, count: "650+" },
-              { name: "Toys", icon: Gamepad2, count: "900+" },
+              { name: "Electronics", image: "/cat_electronics.png", count: "1.2k+" },
+              { name: "Fashion", image: "/cat_fashion.png", count: "3.5k+" },
+              { name: "Home & Garden", image: "/cat_home.png", count: "800+" },
+              { name: "Beauty", image: "/cat_beauty.png", count: "1.5k+" },
+              { name: "Sports", image: "/cat_sports.png", count: "650+" },
+              { name: "Toys", image: "/cat_electronics.png", count: "900+" },
             ].map((cat) => (
-              <Link href={`/category/${cat.name.toLowerCase()}`} key={cat.name} className="bg-white rounded-[24px] p-8 text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-300 border border-gray-100 group hover:-translate-y-2">
-                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-gray-50 to-gray-100 rounded-[20px] flex items-center justify-center text-virsa-primary mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-inner">
-                  <cat.icon className="w-9 h-9" strokeWidth={1.5} />
+              <Link href={`/products?category=${cat.name.toLowerCase()}`} key={cat.name} className="bg-white rounded-[24px] p-5 text-center shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-300 border border-gray-100 group hover:-translate-y-2">
+                <div className="w-20 h-20 mx-auto rounded-[20px] overflow-hidden mb-5 group-hover:scale-110 transition-transform duration-300 shadow-sm border border-gray-100 relative">
+                  <Image src={cat.image} alt={cat.name} fill className="object-cover" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2 group-hover:text-virsa-primary transition-colors">{cat.name}</h3>
-                <p className="text-sm font-medium text-gray-400 bg-gray-50 inline-block px-3 py-1 rounded-full">{cat.count} items</p>
+                <h3 className="font-bold text-gray-900 mb-2 group-hover:text-virsa-primary transition-colors text-sm">{cat.name}</h3>
+                <p className="text-xs font-medium text-gray-400 bg-gray-50 inline-block px-3 py-1 rounded-full">{cat.count} items</p>
               </Link>
             ))}
           </div>
@@ -122,45 +119,38 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[1, 2, 3, 4].map((item) => (
-              <div key={item} className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] transition-all duration-300 group hover:-translate-y-1">
-                <div className="relative aspect-[4/3] bg-gray-50 overflow-hidden p-6 flex items-center justify-center">
-                  {/* Decorative background circle */}
-                  <div className="absolute w-40 h-40 bg-white rounded-full blur-2xl opacity-60 mix-blend-overlay"></div>
-
-                  {/* Placeholder block until images are available */}
-                  <div className="relative z-10 text-gray-300 group-hover:scale-110 transition-transform duration-500 group-hover:text-virsa-primary/40">
-                    <ShoppingBag className="w-20 h-20" strokeWidth={1} />
-                  </div>
-
+            {[
+              { id: 1, name: "Premium Wireless Headphones Pro", price: "Rs 19,999", oldPrice: "Rs 24,999", image: "/product_headphones.png", badge: "SALE 20%", rating: 5, reviews: 124, vendor: "Tech Haven" },
+              { id: 2, name: "Mechanical Keyboard RGB Edition", price: "Rs 12,999", oldPrice: null, image: "/product_keyboard.png", badge: "NEW ARRIVAL", rating: 5, reviews: 86, vendor: "GamerZ Pro" },
+              { id: 3, name: "Smart Watch Premium Black", price: "Rs 29,999", oldPrice: null, image: "/product_watch.png", badge: null, rating: 5, reviews: 212, vendor: "Tech Haven" },
+              { id: 4, name: "Premium Running Sneakers X1", price: "Rs 8,999", oldPrice: "Rs 11,999", image: "/product_sneakers.png", badge: "SALE", rating: 5, reviews: 58, vendor: "StyleMates" },
+            ].map((item) => (
+              <div key={item.id} className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] transition-all duration-300 group hover:-translate-y-1">
+                <div className="relative aspect-square bg-gray-50 overflow-hidden">
+                  <Image src={item.image} alt={item.name} fill className="object-contain p-4 group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute top-4 left-4 flex flex-col gap-2 z-20">
-                    {item === 1 && <span className="bg-virsa-danger text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">SALE 20%</span>}
-                    {item === 2 && <span className="bg-gradient-to-r from-virsa-primary to-[#5b8c61] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">NEW ARRIVAL</span>}
+                    {item.badge && <span className="bg-virsa-danger text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">{item.badge}</span>}
                   </div>
                   <button className="absolute bottom-4 right-4 w-12 h-12 bg-white rounded-full shadow-[0_8px_20px_rgba(0,0,0,0.15)] flex items-center justify-center text-gray-900 hover:bg-virsa-primary hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0 z-20">
                     <ShoppingCart className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="p-6">
-                  <div className="text-xs font-semibold tracking-wider text-virsa-primary mb-3 uppercase flex justify-between items-center">
-                    <span className="hover:underline cursor-pointer">Premium Store {item}</span>
-                  </div>
-                  <h3 className="font-bold text-gray-900 text-lg mb-3 line-clamp-2 hover:text-virsa-primary cursor-pointer leading-tight">
-                    Premium Wireless Noise-Cancelling Headphones Pro Edition {item}
-                  </h3>
-                  <div className="flex items-center mb-4 bg-gray-50 inline-flex px-2 py-1 rounded-md">
+                <div className="p-5">
+                  <div className="text-xs font-semibold tracking-wider text-virsa-primary mb-2 uppercase">{item.vendor}</div>
+                  <Link href={`/product/${item.id}`}>
+                    <h3 className="font-bold text-gray-900 text-base mb-3 line-clamp-2 hover:text-virsa-primary cursor-pointer leading-tight">{item.name}</h3>
+                  </Link>
+                  <div className="flex items-center mb-3">
                     <div className="flex text-virsa-secondary">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star key={star} className="w-3.5 h-3.5 fill-current" />
                       ))}
                     </div>
-                    <span className="text-xs font-medium text-gray-600 ml-2">(124 reviews)</span>
+                    <span className="text-xs font-medium text-gray-500 ml-2">({item.reviews})</span>
                   </div>
-                  <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-black text-gray-900">Rs 199.99</span>
-                      {item === 1 && <span className="text-sm font-medium text-gray-400 line-through decoration-gray-300 decoration-2">Rs 249.99</span>}
-                    </div>
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                    <span className="text-xl font-black text-gray-900">{item.price}</span>
+                    {item.oldPrice && <span className="text-xs font-medium text-gray-400 line-through">{item.oldPrice}</span>}
                   </div>
                 </div>
               </div>
@@ -181,36 +171,34 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 pt-10">
-            {[1, 2, 3].map((vendor) => (
-              <div key={vendor} className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 relative mt-16 md:mt-0 group hover:-translate-y-2">
-                <div className="w-32 h-32 absolute -top-16 left-1/2 -translate-x-1/2 rounded-[24px] bg-white flex items-center justify-center p-2 shadow-[0_10px_30px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform duration-300 rotate-3 group-hover:rotate-0">
-                  <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 rounded-[16px] flex items-center justify-center flex-col">
-                    <HomeIcon className="w-8 h-8 text-gray-300 mb-1" strokeWidth={1.5} />
-                    <span className="text-sm font-bold text-gray-400">Store {vendor}</span>
+            {[
+              { id: 1, name: "Tech Haven Official", rating: "4.9", count: "245", logo: "/vendor_logo_1.png", products: ["/product_headphones.png", "/product_keyboard.png", "/product_watch.png"], desc: "Specializing in high-end electronics, premium gadgets, and exclusive accessories with verified authenticity." },
+              { id: 2, name: "StyleMates Boutique", rating: "4.8", count: "188", logo: "/vendor_logo_2.png", products: ["/product_sneakers.png", "/cat_fashion.png", "/product_backpack.png"], desc: "Curated fashion collections featuring the latest trends for men and women from around the world." },
+              { id: 3, name: "Home Luxe Store", rating: "4.7", count: "132", logo: "/vendor_logo_1.png", products: ["/cat_home.png", "/cat_beauty.png", "/product_backpack.png"], desc: "Premium home decor, kitchen essentials, and lifestyle products for the modern home." },
+            ].map((vendor) => (
+              <div key={vendor.id} className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 relative mt-16 md:mt-0 group hover:-translate-y-2">
+                <div className="w-32 h-32 absolute -top-16 left-1/2 -translate-x-1/2 rounded-[24px] bg-white flex items-center justify-center p-2 shadow-[0_10px_30px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform duration-300 rotate-3 group-hover:rotate-0 overflow-hidden">
+                  <div className="w-full h-full rounded-[16px] relative overflow-hidden">
+                    <Image src={vendor.logo} alt={vendor.name} fill className="object-cover" />
                   </div>
                 </div>
                 <div className="pt-16 text-center">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Tech Haven Official</h3>
-                  <div className="flex items-center justify-center mb-5">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{vendor.name}</h3>
+                  <div className="flex items-center justify-center mb-4">
                     <div className="flex bg-virsa-secondary/10 px-3 py-1 rounded-full items-center">
                       <Star className="w-4 h-4 fill-virsa-warning text-virsa-warning" />
-                      <span className="font-bold ml-1.5 text-sm text-gray-900">4.9 Vendor Rating</span>
+                      <span className="font-bold ml-1.5 text-sm text-gray-900">{vendor.rating} · {vendor.count} products</span>
                     </div>
                   </div>
-                  <p className="text-gray-500 text-sm mb-8 leading-relaxed px-4">
-                    Specializing in high-end electronics, premium gadgets, and exclusive accessories with verified authenticity.
-                  </p>
-
-                  {/* Vendor Product Showcase */}
-                  <div className="flex justify-center gap-3 mb-8">
-                    {[1, 2, 3].map((prod) => (
-                      <div key={prod} className="w-20 h-20 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center hover:bg-virsa-light/20 transition-colors cursor-pointer group/item">
-                        <Laptop className="w-6 h-6 text-gray-300 group-hover/item:text-virsa-primary group-hover/item:scale-110 transition-all duration-300" strokeWidth={1.5} />
+                  <p className="text-gray-500 text-sm mb-6 leading-relaxed px-2">{vendor.desc}</p>
+                  <div className="flex justify-center gap-2 mb-6">
+                    {vendor.products.map((img, i) => (
+                      <div key={i} className="w-20 h-20 rounded-2xl bg-gray-50 border border-gray-100 relative overflow-hidden hover:border-virsa-primary/30 transition-colors cursor-pointer">
+                        <Image src={img} alt="product" fill className="object-cover" />
                       </div>
                     ))}
                   </div>
-
-                  <Link href={`/vendor/${vendor}`} className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-2xl border-2 border-virsa-primary text-virsa-primary font-bold hover:bg-virsa-primary hover:text-white transition-all duration-300">
+                  <Link href={`/vendor/${vendor.id}`} className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl border-2 border-virsa-primary text-virsa-primary font-bold hover:bg-virsa-primary hover:text-white transition-all duration-300">
                     Visit Store <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>

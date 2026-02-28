@@ -1,10 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Filter, Star, ShoppingCart, SlidersHorizontal, ChevronRight, X, Heart, Check } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useState } from "react";
+
+const PRODUCT_IMAGES: Record<number, string> = {
+    1: "/product_headphones.png",
+    2: "/product_keyboard.png",
+    3: "/product_watch.png",
+    4: "/product_watch.png",
+    5: "/cat_home.png",
+    6: "/product_headphones.png",
+    7: "/cat_electronics.png",
+    8: "/cat_home.png",
+    9: "/product_keyboard.png",
+    10: "/product_backpack.png",
+    11: "/product_headphones.png",
+    12: "/cat_electronics.png",
+};
 
 const PRODUCTS = [
     { id: 1, name: "Premium Wireless Noise-Cancelling Headphones Pro", price: "Rs 19,999", priceNum: 19999, vendor: "Tech Haven PK", rating: 5, badge: null },
@@ -41,9 +57,13 @@ function ProductCard({ item }: { item: typeof PRODUCTS[0] }) {
 
     return (
         <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col h-full hover:-translate-y-1">
-            <Link href={`/product/${item.id}`} className="relative aspect-square bg-gray-50 flex items-center justify-center p-6 overflow-hidden block">
-                <div className="absolute inset-0 bg-virsa-light/10 mix-blend-multiply opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="w-24 h-24 bg-gray-200 rounded-full group-hover:scale-110 transition-transform duration-500 shadow-inner" />
+            <Link href={`/product/${item.id}`} className="relative aspect-square bg-gray-50 overflow-hidden block">
+                <Image
+                    src={PRODUCT_IMAGES[item.id] ?? "/product_headphones.png"}
+                    alt={item.name}
+                    fill
+                    className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+                />
                 {item.badge && (
                     <div className="absolute top-4 left-4 z-10">
                         <span className="bg-virsa-danger text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-md uppercase tracking-wide">{item.badge}</span>

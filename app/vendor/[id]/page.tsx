@@ -2,9 +2,35 @@
 
 import { use, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Star, MapPin, Calendar, ShieldCheck, Package, ShoppingCart, Heart, Check, ChevronRight } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
+
+const PRODUCT_IMAGES: Record<number, string> = {
+    1: "/product_headphones.png",
+    2: "/product_keyboard.png",
+    3: "/product_watch.png",
+    4: "/product_watch.png",
+    5: "/product_headphones.png",
+    6: "/product_keyboard.png",
+    7: "/cat_electronics.png",
+    8: "/product_keyboard.png",
+};
+
+const VENDOR_LOGOS: Record<string, string> = {
+    "1": "/vendor_logo_1.png",
+    "2": "/vendor_logo_2.png",
+    "3": "/vendor_logo_1.png",
+    "4": "/vendor_logo_2.png",
+};
+
+const VENDOR_BANNERS: Record<string, string> = {
+    "1": "/hero_banner.png",
+    "2": "/cat_fashion.png",
+    "3": "/cat_electronics.png",
+    "4": "/cat_home.png",
+};
 
 const VENDOR_DATA = [
     { id: "1", name: "Tech Haven PK", tagline: "Premium electronics, accessories & smart home devices. Authorized seller for top brands.", city: "Lahore", rating: 4.9, reviews: 1240, products: 320, joined: "Oct 2021", category: "Electronics" },
@@ -67,9 +93,13 @@ function ProductCard({ item, vendorName }: { item: typeof STORE_PRODUCTS[0]; ven
 
     return (
         <div className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group flex flex-col h-full hover:-translate-y-1">
-            <Link href={`/product/${item.id}`} className="relative aspect-square bg-gray-50 flex items-center justify-center p-6 overflow-hidden block">
-                <div className="absolute inset-0 bg-virsa-light/10 mix-blend-multiply opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="w-24 h-24 bg-gray-200 rounded-full group-hover:scale-110 transition-transform duration-500 shadow-inner" />
+            <Link href={`/product/${item.id}`} className="relative aspect-square bg-gray-50 overflow-hidden block">
+                <Image
+                    src={PRODUCT_IMAGES[item.id] ?? "/product_headphones.png"}
+                    alt={item.name}
+                    fill
+                    className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+                />
                 {item.badge && (
                     <span className="absolute top-4 left-4 bg-virsa-danger text-white text-[10px] font-bold px-2.5 py-1 rounded-full z-10">{item.badge}</span>
                 )}
@@ -135,18 +165,28 @@ export default function VendorPublicPage({ params }: { params: Promise<{ id: str
 
             {/* Cover & Header */}
             <div className="bg-white border-b border-gray-100">
-                <div className="h-48 md:h-64 w-full bg-gradient-to-r from-virsa-primary to-[#2a452d] relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-1/2 h-full bg-white/5 skew-x-12 transform origin-bottom border-l border-white/10" />
-                    <div className="absolute bottom-0 left-10 w-64 h-64 bg-virsa-secondary/20 rounded-full blur-3xl mix-blend-overlay" />
+                {/* Banner with real image */}
+                <div className="h-48 md:h-64 w-full relative overflow-hidden">
+                    <Image
+                        src={VENDOR_BANNERS[id] ?? "/hero_banner.png"}
+                        alt={`${vendor.name} banner`}
+                        fill
+                        className="object-cover"
+                        priority
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-virsa-primary/80 via-virsa-primary/50 to-transparent" />
                 </div>
 
                 <div className="container mx-auto px-4 max-w-6xl relative">
                     <div className="flex flex-col md:flex-row gap-6 md:gap-8 -mt-16 mb-6 relative z-10">
-                        {/* Logo */}
-                        <div className="w-28 h-28 sm:w-36 sm:h-36 bg-white rounded-3xl p-2 shadow-xl border border-gray-100 flex-shrink-0">
-                            <div className="w-full h-full bg-virsa-primary/10 rounded-2xl flex items-center justify-center font-black text-virsa-primary text-4xl">
-                                {vendor.name[0]}
-                            </div>
+                        {/* Real vendor logo */}
+                        <div className="w-28 h-28 sm:w-36 sm:h-36 bg-white rounded-3xl p-2 shadow-xl border border-gray-100 flex-shrink-0 overflow-hidden relative">
+                            <Image
+                                src={VENDOR_LOGOS[id] ?? "/vendor_logo_1.png"}
+                                alt={vendor.name}
+                                fill
+                                className="object-cover rounded-2xl"
+                            />
                         </div>
 
                         {/* Info */}
