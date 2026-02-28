@@ -1,5 +1,7 @@
+"use client";
 import Link from "next/link";
-import { LayoutDashboard, ShoppingBag, Package, DollarSign, Settings, LogOut, Store } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, DollarSign, Settings, LogOut, Store, Bell } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function VendorDashboardLayout({
     children,
@@ -11,6 +13,7 @@ export default function VendorDashboardLayout({
         { name: "Products", href: "/vendor/dashboard/products", icon: Package },
         { name: "Orders", href: "/vendor/dashboard/orders", icon: ShoppingBag },
         { name: "Earnings", href: "/vendor/dashboard/earnings", icon: DollarSign },
+        { name: "Notifications", href: "/vendor/dashboard/notifications", icon: Bell },
         { name: "Settings", href: "/vendor/dashboard/settings", icon: Settings },
     ];
 
@@ -59,9 +62,7 @@ export default function VendorDashboardLayout({
                 {/* Vendor Topbar (Mobile only) */}
                 <header className="bg-white border-b border-gray-200 px-4 py-4 md:hidden flex justify-between items-center">
                     <h2 className="font-bold text-virsa-primary">Vendor Portal</h2>
-                    <button className="p-2 text-gray-600 bg-gray-50 rounded-lg">
-                        <Store className="w-5 h-5" />
-                    </button>
+                    <NotificationBell role="vendor" />
                 </header>
 
                 <div className="flex-1 p-4 md:p-8 overflow-y-auto">

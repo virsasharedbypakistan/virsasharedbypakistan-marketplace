@@ -53,7 +53,7 @@ export default function Footer() {
                         <h3 className="text-lg font-bold text-gray-900 mb-6">Customer Service</h3>
                         <ul className="space-y-3">
                             <li><Link href="/dashboard" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">My Account</Link></li>
-                            <li><Link href="/orders" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Track Order</Link></li>
+                            <li><Link href="/dashboard/orders" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Track Order</Link></li>
                             <li><Link href="/returns" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Returns & Refunds</Link></li>
                             <li><Link href="/shipping" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Shipping Info</Link></li>
                             <li><Link href="/terms" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Terms & Conditions</Link></li>

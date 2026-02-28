@@ -1,5 +1,7 @@
+"use client";
 import Link from "next/link";
-import { CopyPlus, Store, Users, ShoppingBag, LineChart, Settings, LogOut, Bell, Search } from "lucide-react";
+import { CopyPlus, Store, Users, ShoppingBag, LineChart, Settings, LogOut, Bell, Search, Building2 } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function AdminDashboardLayout({
     children,
@@ -9,9 +11,11 @@ export default function AdminDashboardLayout({
     const navItems = [
         { name: "Dashboard", href: "/admin/dashboard", icon: CopyPlus },
         { name: "Vendors", href: "/admin/dashboard/vendors", icon: Store },
+        { name: "Applications", href: "/admin/dashboard/applications", icon: Building2 },
         { name: "Customers", href: "/admin/dashboard/customers", icon: Users },
         { name: "All Orders", href: "/admin/dashboard/orders", icon: ShoppingBag },
         { name: "Earnings", href: "/admin/dashboard/earnings", icon: LineChart },
+        { name: "Notifications", href: "/admin/dashboard/notifications", icon: Bell },
         { name: "Settings", href: "/admin/dashboard/settings", icon: Settings },
     ];
 
@@ -77,10 +81,7 @@ export default function AdminDashboardLayout({
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button className="relative p-2 rounded-full hover:bg-[#F1F5F9] transition-colors text-[#64748B]">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-[#EF4444] ring-2 ring-white"></span>
-                        </button>
+                        <NotificationBell role="admin" />
                     </div>
                 </header>
 

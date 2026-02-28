@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Search, ShoppingCart, Heart, User, Menu, X } from "lucide-react";
+import { Search, ShoppingCart, Heart, User, Menu, X, Bell } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function Navbar() {
     const { count: cartCount } = useCart();
@@ -84,6 +85,12 @@ export default function Navbar() {
                             </div>
                             <span className="text-[10px] hidden md:block font-medium">Wishlist</span>
                         </Link>
+
+                        {/* Notifications */}
+                        <div className="flex flex-col items-center gap-1">
+                            <NotificationBell role="customer" />
+                            <span className="text-[10px] hidden md:block font-medium">Alerts</span>
+                        </div>
 
                         {/* Cart */}
                         <Link href="/cart" className="hover:text-virsa-primary transition-colors flex flex-col items-center gap-1 relative">
