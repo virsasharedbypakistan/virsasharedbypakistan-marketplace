@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ArrowUpRight, ArrowDownRight, Users, Store, LineChart, Activity, ShoppingBag, ShieldCheck, Clock, X, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 
@@ -163,9 +164,9 @@ export default function AdminDashboardPage() {
                         ))}
                     </div>
 
-                    <button className="mt-4 w-full py-2.5 text-sm font-bold text-[#47704C] bg-[#47704C]/5 hover:bg-[#47704C]/10 rounded-xl transition-colors">
-                        View All Applications
-                    </button>
+                    <Link href="/admin/dashboard/applications" className="mt-4 w-full py-2.5 text-sm font-bold text-[#47704C] bg-[#47704C]/5 hover:bg-[#47704C]/10 rounded-xl transition-colors block text-center">
+                        View All Applications →
+                    </Link>
                 </div>
             </div>
 
