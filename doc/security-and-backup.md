@@ -491,7 +491,7 @@ The Virsa platform uses **two separate Supabase projects** as the database backb
 
 | Role | Project Name | Region | Purpose |
 |---|---|---|---|
-| **Primary (MAIN)** | `virsa-primary` | `ap-south-1` (Mumbai) | Live production traffic, all reads/writes |
+| **Primary (MAIN)** | `virsasharedbypakistan's Project` | `ap-south-1` (Mumbai) | Live production traffic, all reads/writes |
 | **Backup (STANDBY)** | `virsa-backup` | `ap-southeast-1` (Singapore) | Continuous replica, failover target |
 
 ```
@@ -547,13 +547,13 @@ import { createClient } from '@supabase/supabase-js';
 
 // Primary (main) project — all production reads/writes
 export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,        // Primary project URL
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,        // https://ahdxjvdodferniaqjqbc.supabase.co
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
 // Admin client — server-side only, used in API routes
 export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,        // https://ahdxjvdodferniaqjqbc.supabase.co
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 ```
@@ -578,7 +578,7 @@ DUMP_FILE="virsa_replica_$DATE.dump"
 
 echo "[$(date)] Starting replication to backup project..."
 
-# Step 1: Dump from PRIMARY Supabase project
+# Step 1: Dump from PRIMARY Supabase project (ahdxjvdodferniaqjqbc)
 pg_dump "$SUPABASE_PRIMARY_DB_URL" \
   --no-password \
   --format=custom \
@@ -589,7 +589,7 @@ pg_dump "$SUPABASE_PRIMARY_DB_URL" \
 
 echo "[$(date)] Dump complete: $(du -sh $DUMP_FILE)"
 
-# Step 2: Drop + restore to BACKUP Supabase project
+# Step 2: Drop + restore to BACKUP Supabase project (ubeawvyleowhgwndggbe)
 # (only public schema — auth is managed separately)
 pg_restore \
   --host="$SUPABASE_BACKUP_DB_HOST" \
@@ -685,16 +685,16 @@ The active Supabase project is controlled by a **single environment variable**. 
 
 ```env
 # ─── PRIMARY (normal operation) ──────────────────────────────
-NEXT_PUBLIC_SUPABASE_URL=https://[PRIMARY-ID].supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://ahdxjvdodferniaqjqbc.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...primary_anon_key...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...primary_service_key...
-SUPABASE_PRIMARY_DB_URL=postgresql://postgres:[pass]@db.[PRIMARY-ID].supabase.co:5432/postgres
+SUPABASE_PRIMARY_DB_URL=postgresql://postgres:[pass]@db.ahdxjvdodferniaqjqbc.supabase.co:5432/postgres
 
 # ─── BACKUP PROJECT (kept in Vercel secrets — not active) ────
-SUPABASE_BACKUP_URL=https://[BACKUP-ID].supabase.co
+SUPABASE_BACKUP_URL=https://ubeawvyleowhgwndggbe.supabase.co
 SUPABASE_BACKUP_ANON_KEY=eyJ...backup_anon_key...
 SUPABASE_BACKUP_SERVICE_ROLE_KEY=eyJ...backup_service_key...
-SUPABASE_BACKUP_DB_HOST=db.[BACKUP-ID].supabase.co
+SUPABASE_BACKUP_DB_HOST=db.ubeawvyleowhgwndggbe.supabase.co
 SUPABASE_BACKUP_DB_PASSWORD=<backup_db_password>
 ```
 
@@ -754,12 +754,12 @@ BACKUP_FILE="virsa_financial_$DATE.sql.gz"
 S3_BUCKET="s3://virsa-backups/mysql/daily/"
 
 mysqldump \
-  --host="$MYSQL_HOST" \
-  --user="virsa_backup" \
+  --host="srv1491.hstgr.io" \
+  --user="u450707463_virsapakistan" \
   --password="$MYSQL_BACKUP_PASSWORD" \
   --single-transaction \
   --routines --triggers --events \
-  --databases virsa_financial \
+  --databases u450707463_virsapakistan \
   | gzip -9 > "$BACKUP_FILE"
 
 # Encrypt before upload
