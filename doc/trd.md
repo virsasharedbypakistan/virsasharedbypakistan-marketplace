@@ -1,10 +1,10 @@
-Below is the **Technical Requirements Document (TRD)** for your **Multi-Vendor Marketplace Platform**, structured for engineering execution.
-
----
-
 # Technical Requirements Document (TRD)
 
 # Virsa Multi-Vendor Marketplace Platform
+
+**Version:** 2.0 — Updated to reflect confirmed infrastructure
+**Domain:** [virsasharedbypakistan.com](https://virsasharedbypakistan.com)
+**Date:** 2026-03-05
 
 ---
 
@@ -12,21 +12,19 @@ Below is the **Technical Requirements Document (TRD)** for your **Multi-Vendor M
 
 ## 1.1 Purpose
 
-This document defines the technical architecture, system design, database structure, APIs, infrastructure, security controls, and operational requirements for building the Multi-Vendor Marketplace platform.
+This document defines the confirmed technical architecture, infrastructure, database design, API structure, security controls, and operational requirements for the Virsa Multi-Vendor Marketplace.
 
 ## 1.2 Scope
 
-Covers:
-
-* Frontend architecture (Next.js)
-* Backend services & APIs
-* Database architecture (Supabase + MySQL)
-* Authentication & RBAC
-* Order & commission engine
-* Deployment & DevOps
-* Performance & scalability
-* Security
-* Backup & monitoring
+- Frontend architecture (Next.js App Router)
+- Backend services & API Routes
+- Database architecture (Supabase Primary + Backup + MySQL)
+- Authentication & RBAC
+- Order & commission engine
+- File storage (Supabase Storage)
+- Email (Resend), Rate Limiting (Upstash Redis)
+- Deployment (Vercel + GitHub Actions)
+- Performance, scalability, security, and backup
 
 ---
 
@@ -34,563 +32,413 @@ Covers:
 
 ## 2.1 High-Level Architecture
 
-Architecture Type: Modular Monolith (Phase 1)
-Future-ready for Microservices (Phase 2)
+**Type:** Modular Monolith — Next.js Full Stack (App Router)
 
-### Layers:
+```
+Browser
+  ↓
+Next.js App Router (Vercel — virsasharedbypakistan.com)
+  ├── Server Components (SSR/SSG — public pages)
+  ├── Client Components (CSR — dashboards)
+  └── API Routes (/api/*)
+        ├── Supabase SDK → Primary DB (Mumbai)
+        │     └── Backup DB (Singapore) [failover]
+        ├── Prisma ORM → MySQL (Hostinger)
+        ├── Resend API → Email notifications
+        └── Upstash Redis → Rate limiting
+```
 
-1. Presentation Layer (Next.js Frontend)
-2. API Layer (Next.js API routes / Node service)
-3. Business Logic Layer
-4. Data Layer (Supabase + MySQL)
-5. Storage Layer (Supabase Storage / S3)
+## 2.2 Rendering Strategy
+
+| Page Type | Strategy |
+|---|---|
+| Homepage, Products, Product Detail | SSR (dynamic, SEO critical) |
+| Legal pages | SSG (static) |
+| Dashboards (Customer, Vendor, Admin) | CSR (client-side) |
 
 ---
 
-## 2.2 Architecture Flow
-
-Client (Browser)
-↓
-Next.js Frontend (SSR + CSR hybrid)
-↓
-Next.js API Routes / Backend Services
-↓
-Supabase (Auth + Core DB)
-↓
-MySQL (Analytics + Financial Data)
-
----
-
-# 3. Technology Stack
+# 3. Technology Stack (Confirmed)
 
 ## 3.1 Frontend
 
-* Next.js (App Router)
-* TypeScript
-* TailwindCSS
-* React Query / SWR
-* Zustand or Redux Toolkit
-* Axios
-
-Rendering Strategy:
-
-* SSR for product pages
-* SSG for static pages (legal)
-* CSR for dashboards
-
----
+| Technology | Purpose |
+|---|---|
+| Next.js 15 (App Router) | Framework |
+| TypeScript | Type safety |
+| TailwindCSS | Styling |
+| React Hooks | State management |
+| Supabase JS Client | DB + Auth + Storage |
 
 ## 3.2 Backend
 
-* Next.js API Routes
-* Node.js (if separated service)
-* TypeScript
-* Zod (validation)
-* Prisma ORM (for MySQL)
-* Supabase SDK
+| Technology | Purpose |
+|---|---|
+| Next.js API Routes | REST API layer |
+| TypeScript | Type safety |
+| Zod | Input validation |
+| Prisma ORM | MySQL (financial DB) |
+| Supabase Admin SDK | Server-side DB operations |
 
----
+## 3.3 Infrastructure (Confirmed)
 
-## 3.3 Database
-
-Primary DB: Supabase (PostgreSQL)
-Secondary DB: MySQL (Analytics + Financial Logs)
+| Service | Provider | Details |
+|---|---|---|
+| Hosting | **Vercel** | Frontend + API routes |
+| Primary DB | **Supabase** | Project ID: `ahdxjvdodferniaqjqbc`, Mumbai `ap-south-1` |
+| Backup DB | **Supabase** | Project ID: `ubeawvyleowhgwndggbe`, Singapore `ap-southeast-1` |
+| Financial DB | **Hostinger MySQL** | Host: `srv1491.hstgr.io`, DB: `u450707463_virsapakistan` |
+| File Storage | **Supabase Storage** | Primary buckets + rclone sync to Backup project |
+| Email | **Resend** | Transactional emails + system alert emails |
+| Rate Limiting | **Upstash Redis** | REST-based, serverless-friendly |
+| CI/CD | **GitHub Actions** | Auto-deploy to Vercel on push to `main` |
 
 ---
 
 # 4. Database Architecture
 
----
+## 4.1 Supabase — Primary DB (Core Transactional Data)
 
-# 4.1 Supabase (Transactional Database)
+**Host:** `db.ahdxjvdodferniaqjqbc.supabase.co`
+**PostgreSQL version:** 17.6
 
-Handles:
+Core tables:
 
-* Users
-* Vendors
-* Products
-* Orders
-* Reviews
-* Cart
-* Wishlist
+| Table | Purpose |
+|---|---|
+| `users` | All user accounts (extends Supabase Auth) |
+| `vendors` | Vendor profiles and approval status |
+| `products` | Product listings |
+| `categories` | Product categories |
+| `orders` | Order records |
+| `order_items` | Per-item breakdown within an order |
+| `cart_items` | Active cart items |
+| `wishlist_items` | Saved wishlist |
+| `reviews` | Product reviews |
+| `notifications` | In-app notifications |
+| `platform_settings` | Admin-configurable settings |
 
----
+Full schema: see `doc/database-spec.md`
 
-## 4.2 MySQL (Financial & Reporting Database)
+## 4.2 Supabase — Backup DB (Standby / Failover)
 
-Handles:
+**Host:** `db.ubeawvyleowhgwndggbe.supabase.co`
+**Region:** Singapore `ap-southeast-1`
 
-* Commission logs
-* Withdrawal logs
-* Earnings reports
-* Analytics snapshots
+- Replicated from primary every **4 hours** via `pg_dump → pg_restore` (GitHub Actions cron)
+- Storage buckets mirrored every **6 hours** via rclone
+- Promoted to primary by updating Vercel env vars (zero code change needed)
 
-Reason:
-Financial data must be isolated for audit integrity.
+## 4.3 MySQL — Financial DB (Hostinger)
 
----
+**Host:** `srv1491.hstgr.io`  
+**Database:** `u450707463_virsapakistan`  
+**ORM:** Prisma  
 
-# 5. Database Schema (Core Tables)
+Financial tables (isolated for audit integrity):
 
----
+| Table | Purpose |
+|---|---|
+| `commission_logs` | Immutable record per order item |
+| `withdrawal_requests` | Vendor payout requests |
+| `earnings_snapshots` | Daily vendor earning snapshots |
+| `audit_logs` | Admin action trail |
 
-## 5.1 Users Table
+## 4.4 Supabase Storage — File Storage
 
-* id (UUID)
-* name
-* email
-* role (customer | vendor | admin)
-* password_hash
-* created_at
-* status
+Buckets (Primary project + rclone-synced to Backup):
 
----
-
-## 5.2 Vendors Table
-
-* id
-* user_id (FK)
-* store_name
-* logo_url
-* banner_url
-* approval_status
-* rating
-* commission_type
-* commission_rate
-* created_at
-
----
-
-## 5.3 Products Table
-
-* id
-* vendor_id
-* category_id
-* name
-* description
-* price
-* stock
-* images[]
-* status
-* created_at
+| Bucket | Contents |
+|---|---|
+| `product-images` | Product photos |
+| `vendor-assets` | Store logos and banners |
+| `review-images` | Review-attached photos |
+| `user-avatars` | Profile pictures |
+| `category-images` | Category thumbnails |
+| `id-documents` | Vendor ID verification docs (private) |
 
 ---
 
-## 5.4 Orders Table
+# 5. Row-Level Security (RLS)
 
-* id
-* customer_id
-* total_amount
-* shipping_amount
-* status
-* payment_method (COD)
-* created_at
+All Supabase tables have RLS enabled. Policies enforce:
 
----
+- Customers see only their own orders, cart, wishlist, reviews
+- Vendors see only their own products and orders
+- Admins have full read/write access
+- Public can read approved products and vendor profiles
 
-## 5.5 OrderItems Table
-
-* id
-* order_id
-* product_id
-* vendor_id
-* quantity
-* unit_price
-* commission_amount
-* vendor_earning
-
----
-
-## 5.6 Withdrawals Table (MySQL)
-
-* id
-* vendor_id
-* amount
-* status
-* method
-* approved_by
-* created_at
-
----
-
-## 5.7 Commission Logs Table (MySQL)
-
-* id
-* order_id
-* vendor_id
-* commission_percentage
-* commission_amount
-* created_at
+Full RLS policies: see `doc/database-spec.md`
 
 ---
 
 # 6. Role-Based Access Control (RBAC)
 
-Roles:
+| Role | Access Scope |
+|---|---|
+| `customer` | Public pages + `/dashboard/*` |
+| `vendor` | Public pages + `/vendor/dashboard/*` |
+| `admin` | All routes including `/admin/dashboard/*` |
 
-Customer
-Vendor
-Admin
-
-Access Control Implementation:
-
-* Middleware-based route protection
-* JWT token validation
-* Role check in API layer
-* Database-level row security policies (Supabase RLS)
+Enforcement layers:
+1. Next.js Middleware (route protection)
+2. API Route guard (role check via Supabase JWT)
+3. Database RLS (data-level isolation)
 
 ---
 
 # 7. API Design
 
-RESTful API structure:
+All APIs are under `/api/*` as Next.js Route Handlers.
 
-/api/auth
-/api/products
-/api/vendors
-/api/orders
-/api/admin
-/api/withdrawals
+```
+POST   /api/auth/register
+POST   /api/auth/login
+POST   /api/auth/reset
+DELETE /api/auth/logout
 
----
+GET    /api/products
+GET    /api/products/:id
+POST   /api/products          (vendor)
+PUT    /api/products/:id      (vendor)
+DELETE /api/products/:id      (vendor/admin)
 
-## 7.1 Authentication APIs
+GET    /api/vendors
+GET    /api/vendors/:id
+POST   /api/vendors/register
+PATCH  /api/vendors/:id/approve  (admin)
+PATCH  /api/vendors/:id/reject   (admin)
 
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/reset
+POST   /api/orders
+GET    /api/orders/:id
+PATCH  /api/orders/:id/status
 
----
+POST   /api/withdrawals/request
+GET    /api/withdrawals/vendor
+PATCH  /api/withdrawals/:id/approve  (admin)
+PATCH  /api/withdrawals/:id/reject   (admin)
 
-## 7.2 Product APIs
+GET    /api/categories
+POST   /api/categories        (admin)
+PUT    /api/categories/:id    (admin)
+DELETE /api/categories/:id    (admin)
 
-GET /api/products
-GET /api/products/:id
-POST /api/products
-PUT /api/products/:id
-DELETE /api/products/:id
+GET    /api/health
+```
 
----
-
-## 7.3 Order APIs
-
-POST /api/orders
-GET /api/orders/:id
-PATCH /api/orders/status
-
----
-
-## 7.4 Withdrawal APIs
-
-POST /api/withdrawals/request
-GET /api/withdrawals/vendor
-PATCH /api/withdrawals/approve
+All API inputs validated with **Zod**. All mutating routes require authenticated JWT.
 
 ---
 
 # 8. Order & Commission Engine
 
----
-
 ## 8.1 Order Workflow
 
-Status flow:
-
+```
 Pending → Processing → Shipped → Completed → Cancelled
+```
 
-Status transitions controlled by:
+| Transition | Actor |
+|---|---|
+| Pending → Processing | Vendor |
+| Processing → Shipped | Vendor |
+| Any → Cancelled (if Pending) | Customer |
+| Any status override | Admin |
 
-* Vendor (Processing → Shipped)
-* Admin (Override)
-* Customer (Cancel if Pending)
+## 8.2 Commission Calculation
 
----
+Priority: **Per-Vendor → Per-Category → Global Default**
 
-## 8.2 Commission Calculation Logic
+```
+CommissionAmount = ProductPrice × CommissionRate
+VendorEarning    = ProductPrice − CommissionAmount
+```
 
-Commission priority:
-
-1. Per Vendor
-2. Per Category
-3. Global Default
-
-Formula:
-
-Commission = ProductPrice × CommissionRate
-VendorEarning = ProductPrice − Commission
-
-Commission stored at order time (immutable).
+- Commission stored immutably in MySQL `commission_logs` at order time
+- Cannot be modified retroactively
 
 ---
 
-# 9. Shipping System Logic
+# 9. Checkout System (COD Only — Phase 1)
 
-Shipping type configurable:
-
-Option A: Vendor Managed
-Option B: Admin Managed
-
-Shipping Calculation:
-
-* Flat rate
-* City-based rate
-
-Multi-vendor cart:
-
-Shipping calculated separately per vendor.
-
----
-
-# 10. Checkout System (COD)
-
-Workflow:
-
-1. Validate cart
+1. Validate cart items (stock check)
 2. Lock stock (temporary reservation)
-3. Create order
-4. Deduct stock
-5. Send email notification
-
-Stock consistency must use transaction-level locking.
-
----
-
-# 11. Email Notification System
-
-Triggers:
-
-* Order placed
-* Order shipped
-* Order completed
-* Withdrawal approved
-
-Provider:
-
-* SendGrid or Resend API
-
-Emails must be asynchronous (background job queue).
+3. Create order + order items in Supabase
+4. Log commission per item in MySQL
+5. Deduct stock from `products` table
+6. Send order confirmation email via Resend
+7. Trigger vendor notification
 
 ---
 
-# 12. Background Job Processing
+# 10. Email Notification System
 
-Used for:
+**Provider:** Resend (`RESEND_API_KEY`)
+**From address:** `noreply@virsasharedbypakistan.com`
+**Alert address:** `admin@virsasharedbypakistan.com`
 
-* Email sending
-* Commission logging
-* Analytics aggregation
-* Scheduled payouts
+| Trigger | Recipient |
+|---|---|
+| Order placed | Customer + Vendor |
+| Order shipped | Customer |
+| Order completed | Customer |
+| Withdrawal approved | Vendor |
+| Withdrawal rejected | Vendor |
+| DB replication failure | Admin (alert email) |
+| System error | Admin (alert email) |
 
-Recommended:
-
-* BullMQ (Redis)
-* Supabase Edge Functions (optional)
-
----
-
-# 13. Admin Panel Architecture
-
-Built using:
-
-* Next.js (separate admin layout)
-* Protected routes
-* API-level admin validation
-
-Admin capabilities:
-
-* Vendor approval
-* Order override
-* Commission management
-* Withdrawal approval
+Emails sent asynchronously via API routes.
 
 ---
 
-# 14. Security Requirements
+# 11. Rate Limiting
+
+**Provider:** Upstash Redis  
+**Endpoint:** `UPSTASH_REDIS_REST_URL`
+
+Applied to:
+- Auth routes (login, register) — 10 req / minute per IP
+- API mutation routes — 60 req / minute per user
+- Admin routes — standard limits
 
 ---
 
-## 14.1 Authentication Security
+# 12. Security Requirements
 
-* Supabase Auth
-* JWT validation
-* Secure cookies
-* Password hashing (bcrypt)
+See `doc/security-and-backup.md` for full specification. Summary:
 
----
-
-## 14.2 API Security
-
-* Input validation (Zod)
-* Rate limiting
-* CSRF protection
-* CORS policy
+- HTTPS enforced via Vercel
+- Supabase Auth (JWT, HTTP-only cookies, 1-hour token expiry)
+- RLS on all Supabase tables
+- AES-256-GCM encryption for vendor bank details (`ENCRYPTION_KEY`)
+- Zod validation on all API inputs
+- CORS locked to `https://virsasharedbypakistan.com`
+- CSRF protection via SameSite cookies
+- Rate limiting on all public-facing routes (Upstash Redis)
+- Service role key never exposed to browser
 
 ---
 
-## 14.3 Data Security
+# 13. Performance Requirements
 
-* HTTPS enforced
-* Environment variable encryption
-* Row-level security in Supabase
-* SQL injection prevention via ORM
-
----
-
-# 15. Performance Requirements
-
-Target:
-
-* <2 sec page load
-* <500ms API response
-
-Optimizations:
-
-* CDN caching
-* Image optimization
-* Database indexing
-* Query optimization
+- Page load < 2 seconds
+- API response < 500ms
+- Image delivery via Supabase Storage CDN
+- Next.js Image Optimization enabled
 
 ---
 
-# 16. Scalability Plan
+# 14. Backup & Recovery
 
-Phase 1:
+See `doc/security-and-backup.md` for full specification. Summary:
 
-Monolith (Next.js + Supabase)
+| Layer | Strategy | RPO |
+|---|---|---|
+| Supabase Primary | Managed daily backup (Pro Plan) | 24h |
+| Supabase Backup project | pg_dump → pg_restore every 4h | 4h |
+| MySQL (Hostinger) | Daily mysqldump | 24h |
+| Supabase Storage | rclone sync to Backup every 6h | 6h |
 
-Phase 2:
-
-* Separate backend service
-* Redis caching
-* Read replicas
-* Microservices split:
-
-  * Order Service
-  * Commission Service
-  * Notification Service
+**Failover:** Update 3 Vercel env vars → redeploy. No code change.
 
 ---
 
-# 17. Backup & Recovery
+# 15. DevOps & Deployment
 
-Database backup:
+**CI/CD:** GitHub Actions → Vercel auto-deploy
+**Branch strategy:** `main` = production
 
-* Daily automated backups (Supabase)
-* Weekly full MySQL dump
-
-Retention:
-
-* 30 days backup history
-
-Recovery plan:
-
-* Restore from snapshot
-* Redeploy via CI/CD
+Pre-deploy checklist:
+1. Run `pg_dump` snapshot of Primary DB
+2. Apply migrations to both Primary and Backup Supabase projects
+3. Deploy to Vercel
+4. Run health check: `/api/health`
 
 ---
 
-# 18. DevOps & Deployment
+# 16. Monitoring
 
-Environments:
-
-* Development
-* Staging
-* Production
-
-CI/CD:
-
-* GitHub Actions
-* Automated build & deploy
-
-Hosting:
-
-Frontend: Vercel
-Backend: Vercel / AWS
-Database: Supabase + Managed MySQL
+| Tool | Purpose |
+|---|---|
+| Vercel Analytics | Traffic, performance |
+| Uptime monitoring | `/api/health` endpoint (monitors Primary + Backup + MySQL) |
+| Email alerts (Resend) | DB replication failures, system errors |
+| Supabase Dashboard | Slow query logs, DB usage |
 
 ---
 
-# 19. Monitoring & Logging
+# 17. Code Structure (Implemented)
 
-Monitoring:
-
-* Vercel Analytics
-* Sentry (Error tracking)
-
-Logs:
-
-* API logs
-* Payment logs
-* Withdrawal logs
-
----
-
-# 20. Testing Strategy
-
-Testing Types:
-
-* Unit testing (Jest)
-* Integration testing
-* API testing (Postman)
-* E2E testing (Playwright)
-
-Coverage Target:
-
-≥ 70%
-
----
-
-# 21. Code Structure
-
-/src
+```
 /app
-/components
-/modules
-/services
-/lib
-/types
-/api
-
-Separation by feature modules recommended.
+  /page.tsx                    ← Homepage
+  /login                       ← Login page
+  /products                    ← Products listing
+  /product/[id]                ← Product detail
+  /vendors                     ← Vendors listing
+  /vendor/[id]                 ← Vendor public profile
+  /cart                        ← Cart
+  /checkout                    ← Checkout
+  /deals                       ← Deals page
+  /contact                     ← Contact page
+  /wishlist                    ← Wishlist
+  /dashboard                   ← Customer dashboard
+    /orders
+    /reviews
+    /wishlist
+    /notifications
+    /settings
+  /vendor/dashboard            ← Vendor dashboard
+    /products
+    /orders
+    /earnings
+    /notifications
+    /settings
+  /admin/dashboard             ← Admin dashboard
+    /applications
+    /vendors
+    /customers
+    /orders
+    /earnings
+    /notifications
+    /settings
+/components                    ← Shared UI components
+/contexts                      ← React context providers
+/lib                           ← Supabase client, utilities
+```
 
 ---
 
-# 22. Technical Risks
+# 18. Scalability Plan
 
-Risk: Multi-vendor cart complexity
-Mitigation: Separate order items by vendor
+**Phase 1 (Current):** Monolith — Next.js + Supabase + MySQL on Vercel
 
-Risk: Commission calculation errors
-Mitigation: Immutable commission logs
+**Phase 2:** Separate backend service + Supabase read replicas + Redis caching
 
-Risk: Concurrency in stock management
-Mitigation: Transactional queries
+**Phase 3:** Microservices split (Order Service, Commission Service, Notification Service)
 
 ---
 
-# 23. Future Technical Enhancements
+# 19. Future Technical Enhancements
 
-* Payment gateway integration
-* Real-time notifications (WebSockets)
-* Vendor-customer chat
-* Elasticsearch integration
-* AI product recommendations
+- Payment gateways: JazzCash, Easypaisa, Stripe
+- Real-time notifications via Supabase Realtime
+- Vendor–customer messaging
+- Elasticsearch for advanced product search
+- Mobile app (React Native or Next.js PWA)
+- AI product recommendations
 
 ---
 
-# 24. Acceptance Criteria (Technical)
+# 20. Acceptance Criteria (Technical)
 
 Platform is technically complete when:
 
-* Role-based system enforced
-* Commission engine validated
-* Multi-vendor cart works
-* Withdrawal workflow functional
-* Email notifications triggered
-* Automated backups active
-* Security policies enforced
-
----
-
-This TRD now provides the engineering blueprint required to implement the system.
-
+- All three role-based dashboards fully functional
+- Commission engine validated with correct calculations
+- Multi-vendor cart works with per-vendor shipping
+- Withdrawal workflow end-to-end functional
+- Email notifications triggered correctly via Resend
+- Automated DB replication active (Primary → Backup)
+- All security policies enforced (RLS, rate limiting, encryption)
+- Health check endpoint returns all services `up`

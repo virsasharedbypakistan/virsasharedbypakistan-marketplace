@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { LayoutDashboard, ShoppingBag, Package, DollarSign, Settings, LogOut, Store, Bell } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, DollarSign, Settings, LogOut, Store, Bell, Zap } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 
 export default function VendorDashboardLayout({
@@ -13,6 +13,7 @@ export default function VendorDashboardLayout({
         { name: "Products", href: "/vendor/dashboard/products", icon: Package },
         { name: "Orders", href: "/vendor/dashboard/orders", icon: ShoppingBag },
         { name: "Earnings", href: "/vendor/dashboard/earnings", icon: DollarSign },
+        { name: "Deals", href: "/vendor/dashboard/deals", icon: Zap },
         { name: "Notifications", href: "/vendor/dashboard/notifications", icon: Bell },
         { name: "Settings", href: "/vendor/dashboard/settings", icon: Settings },
     ];
