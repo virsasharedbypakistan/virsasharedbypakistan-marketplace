@@ -38,3 +38,34 @@ export async function PATCH(
     return apiError('Internal server error', 500);
   }
 }
+
+// ── DELETE /api/notifications/[id] — Delete notification ────────────
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authResult = await requireAuth();
+    if ('error' in authResult) return authResult.error;
+    const { user } = authResult;
+
+    const { id } = await params;
+
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('[Notification DELETE] Delete error:', error);
+      return apiError('Failed to delete notification', 500);
+    }
+
+    return apiSuccess(null, 'Notification deleted');
+  } catch (err) {
+    console.error('[Notification DELETE] Exception:', err);
+    return apiError('Internal server error', 500);
+  }
+}
