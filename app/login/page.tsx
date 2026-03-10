@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { Eye, EyeOff, User, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
 export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -21,32 +22,61 @@ export default function LoginPage() {
         try {
             const supabase = createClient();
             
+            // Sign in with Supabase Auth
             const { data, error: signInError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
             if (signInError) {
+                console.error('Sign in error:', signInError);
                 setError(signInError.message);
                 setLoading(false);
                 return;
             }
 
-            // Get user role from users table
-            const { data: userData, error: userError } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', data.user.id)
-                .single();
-
-            if (userError) {
-                setError('Failed to fetch user data');
+            if (!data.user) {
+                setError('Login failed - no user data returned');
                 setLoading(false);
                 return;
             }
 
+            console.log('User signed in:', data.user.id);
+
+            // Wait a moment for the session to be established
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Get user role from users table
+            const { data: userData, error: userError } = await supabase
+                .from('users')
+                .select('role, full_name, is_banned')
+                .eq('id', data.user.id)
+                .single();
+
+            if (userError) {
+                console.error('User data fetch error:', userError);
+                setError(`Failed to fetch user data: ${userError.message}`);
+                setLoading(false);
+                return;
+            }
+
+            if (!userData) {
+                setError('User profile not found in database');
+                setLoading(false);
+                return;
+            }
+
+            if (userData.is_banned) {
+                setError('Your account has been suspended. Please contact support.');
+                await supabase.auth.signOut();
+                setLoading(false);
+                return;
+            }
+
+            console.log('User data:', userData);
+
             // Redirect based on role
-            const role = userData?.role;
+            const role = userData.role;
             if (role === 'admin') {
                 router.push('/admin/dashboard');
             } else if (role === 'vendor') {
@@ -55,6 +85,7 @@ export default function LoginPage() {
                 router.push('/dashboard');
             }
         } catch (err) {
+            console.error('Login exception:', err);
             setError('An unexpected error occurred');
             setLoading(false);
         }
@@ -104,17 +135,27 @@ export default function LoginPage() {
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                                 Password
                             </label>
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="current-password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-virsa-primary focus:border-transparent transition-all sm:text-sm bg-gray-50 focus:bg-white"
-                                placeholder="••••••••"
-                            />
+                            <div className="relative">
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? "text" : "password"}
+                                    autoComplete="current-password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="appearance-none relative block w-full px-4 py-3 pr-12 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-virsa-primary focus:border-transparent transition-all sm:text-sm bg-gray-50 focus:bg-white"
+                                    placeholder="••••••••"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -152,11 +193,32 @@ export default function LoginPage() {
 
 
                 <p className="mt-8 text-center text-sm text-gray-500 relative z-10">
-                    Not a member?{' '}
-                    <Link href="/register" className="font-semibold text-virsa-primary hover:text-virsa-primary/80 transition-colors">
-                        Sign up now
-                    </Link>
+                    Not a member?
                 </p>
+                
+                <div className="mt-4 grid grid-cols-2 gap-3 relative z-10">
+                    <Link 
+                        href="/register" 
+                        className="flex flex-col items-center justify-center py-4 px-4 border-2 border-virsa-primary/20 rounded-xl hover:border-virsa-primary hover:bg-virsa-primary/5 transition-all group"
+                    >
+                        <div className="w-10 h-10 bg-virsa-primary/10 rounded-full flex items-center justify-center mb-2 group-hover:bg-virsa-primary/20 transition-colors">
+                            <User className="w-5 h-5 text-virsa-primary" />
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">Sign up as Customer</span>
+                        <span className="text-xs text-gray-500 mt-0.5">Start shopping</span>
+                    </Link>
+                    
+                    <Link 
+                        href="/vendors/register" 
+                        className="flex flex-col items-center justify-center py-4 px-4 border-2 border-virsa-secondary/30 rounded-xl hover:border-virsa-secondary hover:bg-virsa-secondary/5 transition-all group"
+                    >
+                        <div className="w-10 h-10 bg-virsa-secondary/20 rounded-full flex items-center justify-center mb-2 group-hover:bg-virsa-secondary/30 transition-colors">
+                            <Store className="w-5 h-5 text-virsa-dark" />
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">Sign up as Vendor</span>
+                        <span className="text-xs text-gray-500 mt-0.5">Sell products</span>
+                    </Link>
+                </div>
             </div>
         </div>
     );

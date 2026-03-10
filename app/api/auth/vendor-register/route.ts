@@ -46,13 +46,13 @@ export async function POST(request: NextRequest) {
     // Check if user already has a vendor profile
     const { data: existingVendor } = await supabaseAdmin
       .from('vendors')
-      .select('id, approval_status')
+      .select('id, status')
       .eq('user_id', user.id)
       .single();
 
     if (existingVendor) {
       return apiError(
-        `You already have a vendor application (status: ${existingVendor.approval_status})`,
+        `You already have a vendor application (status: ${existingVendor.status})`,
         409,
         'VENDOR_EXISTS'
       );
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         banner_url: data.banner_url || null,
         phone: data.phone,
         email: user.email,
-        approval_status: 'pending',
+        status: 'pending',
       })
       .select('id')
       .single();

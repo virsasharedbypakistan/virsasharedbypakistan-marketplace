@@ -49,20 +49,43 @@ export async function GET(request: NextRequest) {
       .select(
         `
         id, vendor_earning, item_status, created_at,
-        orders!inner(order_number)
+        orders!inner(order_number, created_at)
       `
       )
       .eq('vendor_id', vendor.id)
       .gte('created_at', thirtyDaysAgo.toISOString())
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(20);
+
+    // Format transactions for frontend
+    const transactions = recentOrders?.map((item: any) => ({
+      id: item.orders.order_number,
+      description: 'COD Order Sale',
+      type: 'credit',
+      status: item.item_status === 'completed' ? 'Settled' : 'Pending',
+      date: new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      amount: parseFloat(item.vendor_earning || '0'),
+    })) || [];
+
+    // Calculate earnings breakdown
+    const totalSales = completedEarnings + pendingEarnings;
+    const shippingFees = totalSales * 0.12; // Estimate 12% shipping
+    const otherFees = totalSales * 0.03; // Estimate 3% other
+    const productSales = totalSales - shippingFees - otherFees;
+    const commission = totalSales * 0.05; // 5% platform commission
 
     return apiSuccess({
-      currentBalance: parseFloat(vendorData?.balance || '0'),
-      totalEarnings: parseFloat(vendorData?.total_earnings || '0'),
-      pendingEarnings,
-      completedEarnings,
-      recentTransactions: recentOrders || [],
+      total_earnings: parseFloat(vendorData?.total_earnings || '0'),
+      pending_settlement: pendingEarnings,
+      settled_this_month: completedEarnings,
+      transactions,
+      breakdown: {
+        product_sales: productSales,
+        shipping_fees: shippingFees,
+        other: otherFees,
+        commission,
+        net_earnings: totalSales - commission,
+      },
     });
   } catch (err) {
     console.error('[Vendor Earnings GET] Exception:', err);

@@ -1,18 +1,82 @@
-import { Search, Star, MapPin, Package, ExternalLink } from "lucide-react";
+import { Search, Star, Package, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { createClient } from "@/lib/supabase";
+import VendorsSearchClient from "@/components/VendorsSearchClient";
+import type { Metadata } from "next";
 
-const vendors = [
-    { id: 1, name: "Tech Haven PK", category: "Electronics", city: "Lahore", rating: 4.8, reviews: 1240, products: 320, badge: "Top Rated", tagline: "Your go-to tech destination in Pakistan" },
-    { id: 2, name: "Fashion Hub", category: "Fashion & Clothing", city: "Karachi", rating: 4.6, reviews: 892, products: 580, badge: "Trending", tagline: "Latest trends from local & international brands" },
-    { id: 3, name: "Electronics Pro", category: "Electronics", city: "Islamabad", rating: 4.7, reviews: 654, products: 210, badge: null, tagline: "Professional electronics for every need" },
-    { id: 4, name: "Home Essentials", category: "Home & Kitchen", city: "Lahore", rating: 4.5, reviews: 421, products: 450, badge: null, tagline: "Everything you need for your home" },
-    { id: 5, name: "Beauty Store", category: "Beauty & Health", city: "Karachi", rating: 4.9, reviews: 1089, products: 380, badge: "Top Rated", tagline: "Premium beauty products, delivered to your door" },
-    { id: 6, name: "Sports World PK", category: "Sports & Outdoors", city: "Faisalabad", rating: 4.4, reviews: 234, products: 190, badge: null, tagline: "Gear up for every sport and activity" },
-    { id: 7, name: "Kids Zone", category: "Toys & Kids", city: "Rawalpindi", rating: 4.7, reviews: 540, products: 270, badge: "Trusted", tagline: "Safe and fun products for your little ones" },
-    { id: 8, name: "Book Nook", category: "Books & Stationery", city: "Lahore", rating: 4.9, reviews: 320, products: 840, badge: "Top Rated", tagline: "Thousands of titles, local & imported" },
-];
+export const metadata: Metadata = {
+    title: "Our Stores - Virsa Marketplace",
+    description: "Discover trusted local stores and vendors across Pakistan, all curated on one platform.",
+};
 
-export default function VendorsPage() {
+// Revalidate every 10 minutes
+export const revalidate = 600;
+
+type Vendor = {
+    id: string;
+    store_name: string;
+    description: string | null;
+    logo_url: string | null;
+    banner_url: string | null;
+    phone: string | null;
+    average_rating: number;
+    total_reviews: number;
+    status: string;
+    created_at: string;
+};
+
+type VendorWithProducts = Vendor & {
+    product_count: number;
+};
+
+async function getVendors(): Promise<VendorWithProducts[]> {
+    try {
+        const supabase = createClient();
+        
+        // Get all vendors (filter by approval_status if column exists)
+        const { data: vendors, error } = await supabase
+            .from('vendors')
+            .select('*')
+            .order('average_rating', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching vendors:', error);
+            return [];
+        }
+
+        if (!vendors || vendors.length === 0) {
+            return [];
+        }
+
+        // Get product counts for each vendor
+        const vendorIds = vendors.map(v => v.id);
+        const { data: productCounts } = await supabase
+            .from('products')
+            .select('vendor_id')
+            .in('vendor_id', vendorIds)
+            .eq('status', 'active');
+
+        // Count products per vendor
+        const countMap: Record<string, number> = {};
+        productCounts?.forEach(p => {
+            countMap[p.vendor_id] = (countMap[p.vendor_id] || 0) + 1;
+        });
+
+        // Combine data
+        return vendors.map((vendor: any) => ({
+            ...vendor,
+            product_count: countMap[vendor.id] || 0,
+        }));
+    } catch (error) {
+        console.error('Failed to fetch vendors:', error);
+        return [];
+    }
+}
+
+export default async function VendorsPage() {
+    const vendors = await getVendors();
+
     return (
         <div className="container mx-auto px-4 py-10">
             {/* Header */}
@@ -21,64 +85,88 @@ export default function VendorsPage() {
                 <p className="text-gray-500 max-w-xl mx-auto">Discover trusted local stores and vendors across Pakistan, all curated on one platform.</p>
             </div>
 
-            {/* Search + Filter */}
-            <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto mb-10">
-                <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input type="text" placeholder="Search stores by name or category..." className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-virsa-primary focus:ring-2 focus:ring-virsa-primary/10 text-sm" />
-                </div>
-                <select className="px-4 py-3 border border-gray-200 rounded-2xl text-sm font-medium bg-white appearance-none focus:outline-none focus:border-virsa-primary cursor-pointer">
-                    <option>All Categories</option>
-                    <option>Electronics</option>
-                    <option>Fashion</option>
-                    <option>Home & Kitchen</option>
-                    <option>Beauty & Health</option>
-                    <option>Sports</option>
-                </select>
-            </div>
+            {/* Search + Filter - Client Component */}
+            <VendorsSearchClient />
 
             {/* Vendor Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {vendors.map((vendor) => (
-                    <div key={vendor.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 flex flex-col group overflow-hidden">
-                        {/* Store Banner */}
-                        <div className="h-24 bg-gradient-to-br from-virsa-primary/80 to-virsa-dark relative flex items-end p-4">
-                            {vendor.badge && (
-                                <span className="absolute top-3 right-3 bg-virsa-secondary text-virsa-primary text-[10px] font-bold px-2 py-1 rounded-full">
-                                    {vendor.badge}
-                                </span>
-                            )}
-                            {/* Avatar */}
-                            <div className="absolute -bottom-6 left-4 w-14 h-14 rounded-xl bg-white shadow-md border border-gray-100 flex items-center justify-center font-black text-virsa-primary text-xl">
-                                {vendor.name[0]}
-                            </div>
-                        </div>
-
-                        <div className="pt-8 px-4 pb-4 flex flex-col flex-1">
-                            <div className="mb-3">
-                                <h3 className="font-bold text-gray-900 leading-tight">{vendor.name}</h3>
-                                <p className="text-xs text-gray-500 mt-0.5">{vendor.tagline}</p>
-                            </div>
-
-                            <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
-                                <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{vendor.rating} ({vendor.reviews.toLocaleString()})</span>
-                                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{vendor.city}</span>
-                            </div>
-
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
-                                    <Package className="w-3 h-3" /> {vendor.products} Products
-                                </span>
-                                <span className="text-xs bg-virsa-light/50 text-virsa-primary px-2 py-1 rounded-full font-medium">{vendor.category}</span>
-                            </div>
-
-                            <Link href={`/vendor/${vendor.id}`} className="mt-auto w-full py-2.5 border-2 border-virsa-primary text-virsa-primary rounded-xl text-sm font-bold hover:bg-virsa-primary hover:text-white transition-colors flex items-center justify-center gap-2 group-hover:bg-virsa-primary group-hover:text-white">
-                                Visit Store <ExternalLink className="w-4 h-4" />
-                            </Link>
-                        </div>
+            {vendors.length === 0 ? (
+                <div className="text-center py-20">
+                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Package className="w-10 h-10 text-gray-400" />
                     </div>
-                ))}
-            </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Vendors Yet</h3>
+                    <p className="text-gray-500">Check back soon for amazing stores!</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {vendors.map((vendor) => {
+                        const badge = vendor.average_rating >= 4.8 ? "Top Rated" : vendor.average_rating >= 4.5 ? "Trusted" : null;
+                        
+                        return (
+                            <div key={vendor.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-all hover:-translate-y-1 flex flex-col group overflow-hidden">
+                                {/* Store Banner */}
+                                <div className="h-24 bg-gradient-to-br from-virsa-primary/80 to-virsa-dark relative flex items-end p-4">
+                                    {badge && (
+                                        <span className="absolute top-3 right-3 bg-virsa-secondary text-virsa-primary text-[10px] font-bold px-2 py-1 rounded-full">
+                                            {badge}
+                                        </span>
+                                    )}
+                                    {/* Avatar */}
+                                    <div className="absolute -bottom-6 left-4 w-14 h-14 rounded-xl bg-white shadow-md border border-gray-100 flex items-center justify-center overflow-hidden">
+                                        {vendor.logo_url ? (
+                                            <Image
+                                                src={vendor.logo_url}
+                                                alt={vendor.store_name}
+                                                width={56}
+                                                height={56}
+                                                className="object-cover"
+                                            />
+                                        ) : (
+                                            <span className="font-black text-virsa-primary text-xl">
+                                                {vendor.store_name[0]}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="pt-8 px-4 pb-4 flex flex-col flex-1">
+                                    <div className="mb-3">
+                                        <h3 className="font-bold text-gray-900 leading-tight">{vendor.store_name}</h3>
+                                        {vendor.description && (
+                                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{vendor.description}</p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
+                                        <span className="flex items-center gap-1">
+                                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                            {vendor.average_rating.toFixed(1)} ({vendor.total_reviews.toLocaleString()})
+                                        </span>
+                                        {vendor.phone && (
+                                            <span className="flex items-center gap-1 truncate">
+                                                📞 {vendor.phone}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-medium">
+                                            <Package className="w-3 h-3" /> {vendor.product_count} Products
+                                        </span>
+                                    </div>
+
+                                    <Link 
+                                        href={`/vendor/${vendor.id}`} 
+                                        className="mt-auto w-full py-2.5 border-2 border-virsa-primary text-virsa-primary rounded-xl text-sm font-bold hover:bg-virsa-primary hover:text-white transition-colors flex items-center justify-center gap-2 group-hover:bg-virsa-primary group-hover:text-white"
+                                    >
+                                        Visit Store <ExternalLink className="w-4 h-4" />
+                                    </Link>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

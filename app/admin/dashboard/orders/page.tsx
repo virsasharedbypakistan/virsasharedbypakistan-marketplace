@@ -42,7 +42,7 @@ export default function AdminOrdersPage() {
             const res = await fetch("/api/orders");
             if (res.ok) {
                 const data = await res.json();
-                const formattedOrders = data.data.map((o: any) => ({
+                const formattedOrders = (data.data?.data || []).map((o: any) => ({
                     id: o.order_number,
                     customer: o.customer_name,
                     vendor: o.vendor_name,
@@ -207,7 +207,7 @@ export default function AdminOrdersPage() {
 
                 {/* Pagination */}
                 <div className="p-4 md:p-6 border-t border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <span className="text-xs text-gray-500 font-medium">Showing 1 to 10 of 12,482 orders</span>
+                    <span className="text-xs text-gray-500 font-medium">Showing {filtered.length} of {orders.length} orders</span>
                     <div className="flex gap-2">
                         <button className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-400 bg-white disabled:opacity-50" disabled>PREV</button>
                         <button className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm">NEXT</button>

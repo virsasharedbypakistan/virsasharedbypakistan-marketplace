@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       `,
         { count: 'exact' }
       )
-      .eq('approval_status', 'approved');
+      .eq('status', 'approved');
 
     // Search filter
     if (search) {

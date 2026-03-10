@@ -32,6 +32,8 @@ export default function AdminCustomersPage() {
     const [banConfirm, setBanConfirm] = useState<{ open: boolean; customer: Customer | null }>({ open: false, customer: null });
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [actionDone, setActionDone] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchCustomers();
@@ -42,7 +44,7 @@ export default function AdminCustomersPage() {
             const res = await fetch("/api/admin/users?role=customer");
             if (res.ok) {
                 const data = await res.json();
-                const formattedCustomers = data.data.map((c: any) => ({
+                const formattedCustomers = (data.data?.data || []).map((c: any) => ({
                     id: c.id,
                     name: c.full_name,
                     email: c.email,
@@ -81,6 +83,17 @@ export default function AdminCustomersPage() {
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Pagination
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedCustomers = filtered.slice(startIndex, endIndex);
+
+    // Reset to page 1 when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
 
     const toggleBan = async (id: string) => {
         const c = customers.find(c => c.id === id);
@@ -178,7 +191,7 @@ export default function AdminCustomersPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 text-sm">
-                            {filtered.map(customer => (
+                            {paginatedCustomers.map(customer => (
                                 <tr key={customer.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
@@ -231,14 +244,45 @@ export default function AdminCustomersPage() {
                     </table>
                 </div>
 
-                {/* Pagination */}
-                <div className="p-4 md:p-6 border-t border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <span className="text-xs text-gray-500 font-medium">Page 1 of 124</span>
-                    <div className="flex gap-2">
-                        <button className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-400 bg-white disabled:opacity-50" disabled>PREV</button>
-                        <button className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm">NEXT</button>
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="p-4 md:p-6 border-t border-gray-100 flex justify-between items-center bg-gray-50/50">
+                        <span className="text-xs text-gray-500">
+                            Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length}
+                        </span>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                PREV
+                            </button>
+                            <div className="flex gap-1">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                            currentPage === page 
+                                                ? 'bg-virsa-primary text-white' 
+                                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                            </div>
+                            <button 
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                NEXT
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* View Customer Modal */}

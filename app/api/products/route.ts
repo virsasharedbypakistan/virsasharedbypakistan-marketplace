@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     if (!vendor) {
       return apiError('Vendor profile not found', 404, 'VENDOR_NOT_FOUND');
     }
-    if (vendor.approval_status !== 'approved') {
+    if (vendor.status !== 'approved') {
       return apiError('Your vendor account is not yet approved', 403, 'VENDOR_NOT_APPROVED');
     }
 

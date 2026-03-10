@@ -17,8 +17,6 @@ type Vendor = {
     logo: string;
 };
 
-const VENDOR_IMAGES = ["/images/vendors/vendor1.png", "/images/vendors/vendor3.jpg"];
-
 const statusStyle = (s: string) => {
     switch (s) {
         case "Active": return "bg-emerald-50 text-emerald-600 border-emerald-100";
@@ -39,6 +37,8 @@ export default function AdminVendorsPage() {
     const [suspendConfirm, setSuspendConfirm] = useState<Vendor | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [toast, setToast] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchVendors();
@@ -49,16 +49,16 @@ export default function AdminVendorsPage() {
             const res = await fetch("/api/admin/vendors");
             if (res.ok) {
                 const data = await res.json();
-                const formattedVendors = data.data.map((v: any, idx: number) => ({
+                const formattedVendors = (data.data?.data || []).map((v: any) => ({
                     id: v.id,
                     name: v.store_name,
-                    owner: v.owner_name,
+                    owner: v.users?.full_name || "N/A",
                     email: v.email,
                     status: v.status === "active" ? "Active" : v.status === "pending" ? "Pending" : "Suspended",
                     products: v.product_count || 0,
                     revenue: `Rs ${(v.total_revenue || 0).toLocaleString()}`,
                     joined: new Date(v.created_at).toLocaleDateString(),
-                    logo: VENDOR_IMAGES[idx % 2]
+                    logo: v.logo_url || "/images/vendors/vendor1.png"
                 }));
                 setVendors(formattedVendors);
             }
@@ -76,6 +76,17 @@ export default function AdminVendorsPage() {
         v.owner.toLowerCase().includes(searchQuery.toLowerCase()) ||
         v.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Pagination
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedVendors = filtered.slice(startIndex, endIndex);
+
+    // Reset to page 1 when search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
 
     const handleApprove = async (id: string) => {
         try {
@@ -221,7 +232,7 @@ export default function AdminVendorsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 text-sm">
-                            {filtered.map(vendor => (
+                            {paginatedVendors.map(vendor => (
                                 <tr key={vendor.id} className={`hover:bg-gray-50/50 transition-colors ${vendor.status === "Pending" ? "bg-amber-50/20" : ""}`}>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-4">
@@ -281,6 +292,46 @@ export default function AdminVendorsPage() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className="p-4 md:p-6 border-t border-gray-100 flex justify-between items-center bg-gray-50/50">
+                        <span className="text-xs text-gray-500">
+                            Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length}
+                        </span>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                PREV
+                            </button>
+                            <div className="flex gap-1">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                            currentPage === page 
+                                                ? 'bg-virsa-primary text-white' 
+                                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                            </div>
+                            <button 
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                                NEXT
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Approve Confirm */}

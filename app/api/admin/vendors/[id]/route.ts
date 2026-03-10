@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { apiSuccess, apiError, requireRole } from '@/lib/api-helpers';
 import { mutationRateLimit } from '@/lib/ratelimit';
 import { sendEmail, vendorApprovedEmail, vendorRejectedEmail } from '@/lib/email';
+import { decryptSensitive } from '@/lib/encryption';
 import { z } from 'zod';
 
 // ── PATCH /api/admin/vendors/[id] — Approve/reject/suspend vendor ───
@@ -43,7 +44,7 @@ export async function PATCH(
     // Get vendor
     const { data: vendor } = await supabaseAdmin
       .from('vendors')
-      .select('id, user_id, store_name, approval_status, users!inner(email, full_name)')
+      .select('id, user_id, store_name, status, email, phone, metadata, users!vendors_user_id_fkey(email, full_name)')
       .eq('id', id)
       .single();
 
@@ -51,7 +52,7 @@ export async function PATCH(
       return apiError('Vendor not found', 404, 'VENDOR_NOT_FOUND');
     }
 
-    const vendorUser = vendor.users as unknown as { email: string; full_name: string };
+    const vendorUser = vendor.users as unknown as { email: string; full_name: string } | null;
 
     // Prepare update data
     const updateData: Record<string, unknown> = {
@@ -63,38 +64,103 @@ export async function PATCH(
 
     switch (action) {
       case 'approve':
-        if (vendor.approval_status === 'approved') {
+        if (vendor.status === 'approved') {
           return apiError('Vendor is already approved', 400, 'ALREADY_APPROVED');
         }
-        updateData.approval_status = 'approved';
+        updateData.status = 'approved';
         updateData.rejection_reason = null;
 
-        // Update user role to vendor
-        await supabaseAdmin
-          .from('users')
-          .update({ role: 'vendor' })
-          .eq('id', vendor.user_id);
+        // If vendor doesn't have a user account yet (new application flow), create one
+        if (!vendor.user_id && vendor.metadata) {
+          const metadata = vendor.metadata as any;
+          
+          // Decrypt the stored password
+          const password = decryptSensitive(metadata.encrypted_password);
+          
+          // Create user account via Supabase Auth (handles password hashing)
+          const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email: vendor.email,
+            password: password,
+            email_confirm: true, // Auto-confirm email since admin approved
+            user_metadata: { 
+              full_name: `${metadata.first_name} ${metadata.last_name}`,
+              phone: vendor.phone,
+            },
+          });
 
-        emailTemplate = vendorApprovedEmail({
-          vendorName: vendorUser.full_name,
-          storeName: vendor.store_name,
-          dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/vendor/dashboard`,
-        });
+          if (authError) {
+            console.error('[Admin Vendor PATCH] Auth user creation error:', authError);
+            return apiError('Failed to create user account', 500);
+          }
+
+          // Create user record in users table
+          const { data: newUser, error: userError } = await supabaseAdmin
+            .from('users')
+            .insert({
+              id: authUser.user.id, // Use Supabase Auth user ID
+              email: vendor.email,
+              full_name: `${metadata.first_name} ${metadata.last_name}`,
+              phone: vendor.phone,
+              role: 'vendor',
+            })
+            .select('id, email, full_name')
+            .single();
+
+          if (userError) {
+            console.error('[Admin Vendor PATCH] User table insert error:', userError);
+            // Rollback auth user creation
+            await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
+            return apiError('Failed to create user record', 500);
+          }
+
+          // Link vendor to new user
+          updateData.user_id = newUser.id;
+          
+          // Use new user data for email
+          emailTemplate = vendorApprovedEmail({
+            vendorName: newUser.full_name,
+            storeName: vendor.store_name,
+            dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/vendor/dashboard`,
+          });
+        } else if (vendor.user_id) {
+          // Existing flow - update user role to vendor
+          await supabaseAdmin
+            .from('users')
+            .update({ role: 'vendor' })
+            .eq('id', vendor.user_id);
+
+          if (vendorUser) {
+            emailTemplate = vendorApprovedEmail({
+              vendorName: vendorUser.full_name,
+              storeName: vendor.store_name,
+              dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/vendor/dashboard`,
+            });
+          }
+        }
         break;
 
       case 'reject':
-        updateData.approval_status = 'rejected';
+        updateData.status = 'rejected';
         updateData.rejection_reason = reason || 'Application did not meet requirements';
 
-        emailTemplate = vendorRejectedEmail({
-          vendorName: vendorUser.full_name,
-          storeName: vendor.store_name,
-          reason: updateData.rejection_reason as string,
-        });
+        // Send rejection email
+        const applicantName = vendor.metadata?.first_name && vendor.metadata?.last_name
+          ? `${vendor.metadata.first_name} ${vendor.metadata.last_name}`
+          : vendorUser?.full_name || 'Applicant';
+        
+        const applicantEmail = vendor.email || vendorUser?.email;
+
+        if (applicantEmail) {
+          emailTemplate = vendorRejectedEmail({
+            vendorName: applicantName,
+            storeName: vendor.store_name,
+            reason: updateData.rejection_reason as string,
+          });
+        }
         break;
 
       case 'suspend':
-        updateData.approval_status = 'suspended';
+        updateData.status = 'suspended';
         updateData.rejection_reason = reason || 'Account suspended by admin';
 
         // Update user role back to customer
@@ -105,10 +171,10 @@ export async function PATCH(
         break;
 
       case 'activate':
-        if (vendor.approval_status !== 'suspended') {
+        if (vendor.status !== 'suspended') {
           return apiError('Can only activate suspended vendors', 400);
         }
-        updateData.approval_status = 'approved';
+        updateData.status = 'approved';
         updateData.rejection_reason = null;
 
         // Update user role to vendor
@@ -142,10 +208,13 @@ export async function PATCH(
 
     // Send email notification
     if (emailTemplate) {
-      await sendEmail({
-        to: vendorUser.email,
-        ...emailTemplate,
-      });
+      const recipientEmail = vendor.email || vendorUser?.email;
+      if (recipientEmail) {
+        await sendEmail({
+          to: recipientEmail,
+          ...emailTemplate,
+        });
+      }
     }
 
     return apiSuccess(updated, `Vendor ${action}d successfully`);

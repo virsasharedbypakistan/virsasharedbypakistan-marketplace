@@ -26,10 +26,32 @@ export default function AdminEarningsPage() {
 
     const fetchEarnings = async () => {
         try {
-            const res = await fetch("/api/admin/earnings");
-            if (res.ok) {
-                const data = await res.json();
-                setEarnings(data.data);
+            const [earningsRes, statsRes] = await Promise.all([
+                fetch("/api/admin/earnings"),
+                fetch("/api/admin/stats"),
+            ]);
+
+            if (earningsRes.ok && statsRes.ok) {
+                const earningsJson = await earningsRes.json();
+                const statsJson = await statsRes.json();
+
+                const e = earningsJson.data;
+                const s = statsJson.data;
+
+                const topVendors = (e.topVendors || []).map((item: any) => ({
+                    vendor: item.vendor?.store_name || "Unknown",
+                    orders: 0,
+                    revenue: 0,
+                    commission: item.commission || 0,
+                }));
+
+                setEarnings({
+                    totalGMV: s.revenue?.total ?? 0,
+                    commissionEarned: e.summary?.totalCommission ?? 0,
+                    activeVendors: s.vendors?.active ?? 0,
+                    totalOrders: s.orders?.total ?? 0,
+                    topVendors,
+                });
             }
         } catch (error) {
             console.error("Failed to fetch earnings:", error);
@@ -133,42 +155,57 @@ export default function AdminEarningsPage() {
                     </div>
                 </div>
 
-                {/* Revenue Breakdown */}
+                {/* Commission Summary */}
                 <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 flex flex-col">
-                    <h2 className="text-lg font-bold text-gray-900 mb-6">Revenue Sources</h2>
-                    <div className="space-y-6 flex-1">
-                        {[
-                            { label: "Electronics", amount: "Rs 17,29,200", percentage: "70%", color: "bg-virsa-primary" },
-                            { label: "Fashion", amount: "Rs 4,28,000", percentage: "17%", color: "bg-indigo-500" },
-                            { label: "Home & Kitchen", amount: "Rs 2,10,500", percentage: "8.5%", color: "bg-orange-500" },
-                            { label: "Beauty", amount: "Rs 1,80,100", percentage: "7%", color: "bg-pink-400" },
-                        ].map((item, idx) => (
-                            <div key={idx}>
-                                <div className="flex justify-between items-end mb-2">
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-600">{item.label}</p>
-                                        <p className="text-base font-bold text-gray-900">{item.amount}</p>
-                                    </div>
-                                    <span className="text-xs font-bold text-gray-500">{item.percentage}</span>
+                    <h2 className="text-lg font-bold text-gray-900 mb-6">Commission Summary</h2>
+                    <div className="space-y-5 flex-1">
+                        <div>
+                            <div className="flex justify-between items-end mb-2">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Earned (Completed)</p>
+                                    <p className="text-base font-bold text-gray-900">
+                                        Rs {(earnings?.commissionEarned ?? 0).toLocaleString()}
+                                    </p>
                                 </div>
-                                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                                    <div className={`h-full ${item.color} rounded-full`} style={{ width: item.percentage }}></div>
-                                </div>
+                                <span className="text-xs font-bold text-emerald-600">Collected</span>
                             </div>
-                        ))}
+                            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 rounded-full" style={{
+                                    width: earnings && (earnings.commissionEarned + (earnings.commissionEarned * 0.2)) > 0
+                                        ? `${Math.min(100, (earnings.commissionEarned / (earnings.commissionEarned + earnings.commissionEarned * 0.2)) * 100).toFixed(0)}%`
+                                        : "0%"
+                                }} />
+                            </div>
+                        </div>
+
+                        <div>
+                            <div className="flex justify-between items-end mb-2">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600">Platform GMV</p>
+                                    <p className="text-base font-bold text-gray-900">
+                                        Rs {(earnings?.totalGMV ?? 0).toLocaleString()}
+                                    </p>
+                                </div>
+                                <span className="text-xs font-bold text-blue-600">Total Sales</span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-virsa-primary rounded-full" style={{ width: "100%" }} />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="mt-6 pt-6 border-t border-gray-100 space-y-2">
                         <div className="flex justify-between text-sm text-gray-600">
-                            <span className="flex items-center gap-2"><Users className="w-4 h-4" /> New Customers</span>
-                            <span className="font-bold text-gray-900">+1,240</span>
+                            <span className="flex items-center gap-2"><Users className="w-4 h-4" /> Active Vendors</span>
+                            <span className="font-bold text-gray-900">{earnings?.activeVendors ?? 0}</span>
                         </div>
                         <div className="flex justify-between text-sm text-gray-600">
-                            <span className="flex items-center gap-2"><Store className="w-4 h-4" /> New Vendors</span>
-                            <span className="font-bold text-gray-900">+12</span>
+                            <span className="flex items-center gap-2"><Store className="w-4 h-4" /> Top Earning Vendors</span>
+                            <span className="font-bold text-gray-900">{earnings?.topVendors?.length ?? 0}</span>
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     );

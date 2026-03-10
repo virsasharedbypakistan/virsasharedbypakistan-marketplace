@@ -45,13 +45,14 @@ export default function VendorProductsPage() {
         try {
             const response = await fetch("/api/vendor/products");
             if (response.ok) {
-                const data = await response.json();
-                const formattedProducts = data.data.map((product: any) => ({
+                const result = await response.json();
+                const productList = result.data?.data || result.data || [];
+                const formattedProducts = productList.map((product: any) => ({
                     id: product.id,
                     name: product.name,
                     category: product.category_name || "Uncategorized",
                     status: product.status === "active" ? "Active" : product.status === "draft" ? "Draft" : "Hidden",
-                    stock: product.stock_quantity,
+                    stock: product.stock,
                     price: product.price,
                     image: product.images?.[0] || PRODUCT_IMAGES[0]
                 }));
@@ -87,7 +88,7 @@ export default function VendorProductsPage() {
                     body: JSON.stringify({
                         name: form.name,
                         price: Number(form.price),
-                        stock_quantity: Number(form.stock),
+                        stock: Number(form.stock),
                         status: form.status.toLowerCase(),
                         images: [form.image]
                     })
@@ -106,7 +107,7 @@ export default function VendorProductsPage() {
                         name: form.name,
                         description: form.description || form.name,
                         price: Number(form.price),
-                        stock_quantity: Number(form.stock),
+                        stock: Number(form.stock),
                         status: form.status.toLowerCase(),
                         images: [form.image],
                         category_id: 1 // Default category

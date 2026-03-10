@@ -75,9 +75,12 @@ export default function VendorRegisterPage() {
     const [step, setStep] = useState(1);
     const [errors, setErrors] = useState<Errors>({});
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
     const [errorMessage, setErrorMessage] = useState("");
+    const [uploadingFile, setUploadingFile] = useState(false);
+    const [cnicFileUrl, setCnicFileUrl] = useState("");
 
     const [form, setForm] = useState<FormData>({
         firstName: "", lastName: "", email: "", phone: "", password: "", confirmPassword: "",
@@ -107,22 +110,81 @@ export default function VendorRegisterPage() {
 
     const back = () => { setStep((s) => s - 1); setErrors({}); };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingFile(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/api/upload/cnic', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Upload failed');
+            }
+
+            setCnicFileUrl(data.data.url);
+            set("cnicFile", file.name);
+        } catch (error) {
+            console.error('File upload error:', error);
+            alert('Failed to upload file. Please try again.');
+            set("cnicFile", "");
+        } finally {
+            setUploadingFile(false);
+        }
+    };
+
     const submit = async () => {
         const errs = validateStep(3, form);
         if (Object.keys(errs).length > 0) { setErrors(errs); return; }
         setSubmitting(true);
+        setErrorMessage("");
 
-        // Simulate network request — randomly succeed or succeed based on email domain
-        await new Promise((r) => setTimeout(r, 2200));
+        try {
+            // Submit vendor application (no user account created until approved)
+            const res = await fetch("/api/auth/vendor-application", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    first_name: form.firstName,
+                    last_name: form.lastName,
+                    email: form.email,
+                    phone: form.phone,
+                    password: form.password,
+                    store_name: form.storeName,
+                    store_description: form.description,
+                    city: form.city,
+                    bank_account_name: form.accountTitle,
+                    bank_account_number: form.iban.replace(/[^0-9]/g, ""),
+                    bank_name: form.bankName,
+                    iban: form.iban,
+                    cnic: form.cnic,
+                    cnic_document_url: cnicFileUrl,
+                }),
+            });
 
-        // Simulate failure if email contains "fail" keyword (demo purpose)
-        if (form.email.toLowerCase().includes("fail")) {
-            setErrorMessage("We couldn't process your application right now. Our servers are under maintenance. Please try again in a few minutes.");
+            const data = await res.json();
+
+            if (!res.ok) {
+                setErrorMessage(data.message || "Failed to submit application. Please try again.");
+                setSubmitStatus("error");
+            } else {
+                setSubmitStatus("success");
+            }
+        } catch (error) {
+            console.error("Vendor application error:", error);
+            setErrorMessage("Network error. Please check your connection and try again.");
             setSubmitStatus("error");
-        } else {
-            setSubmitStatus("success");
+        } finally {
+            setSubmitting(false);
         }
-        setSubmitting(false);
     };
 
     /* ─── Success Screen ──────────────────────────────────── */
@@ -135,7 +197,7 @@ export default function VendorRegisterPage() {
                     </div>
                     <h1 className="text-3xl font-extrabold text-gray-900 mb-3 tracking-tight">Application Submitted!</h1>
                     <p className="text-gray-600 mb-2 text-lg">Thank you, <span className="font-bold text-virsa-primary">{form.firstName}</span>!</p>
-                    <p className="text-gray-500 mb-8 leading-relaxed">Your vendor application for <span className="font-bold text-gray-800">"{form.storeName}"</span> has been received and is now under review. Our team will verify your documents within <span className="font-bold">2–3 business days</span>.</p>
+                    <p className="text-gray-500 mb-8 leading-relaxed">Your vendor application for <span className="font-bold text-gray-800">"{form.storeName}"</span> has been received and is now under review. Our team will verify your documents within <span className="font-bold">2–3 business days</span>. You will be able to log in once your application is approved.</p>
 
                     <div className="bg-gray-50 rounded-2xl p-5 mb-8 text-left space-y-3 border border-gray-100">
                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">What happens next?</p>
@@ -269,7 +331,7 @@ export default function VendorRegisterPage() {
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5"><Mail className="w-3.5 h-3.5 inline mr-1" />Email Address</label>
-                                <input className={inputCls("email")} type="email" placeholder="you@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} />
+                                <input className={inputCls("email")} type="email" placeholder="you@example.com" value={form.email} onChange={(e) => set("email", e.target.value)} suppressHydrationWarning />
                                 {errMsg("email")}
                             </div>
 
@@ -282,7 +344,7 @@ export default function VendorRegisterPage() {
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5">Password</label>
                                 <div className="relative">
-                                    <input className={inputCls("password") + " pr-12"} type={showPassword ? "text" : "password"} placeholder="Min. 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} />
+                                    <input className={inputCls("password") + " pr-12"} type={showPassword ? "text" : "password"} placeholder="Min. 8 characters" value={form.password} onChange={(e) => set("password", e.target.value)} suppressHydrationWarning />
                                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
                                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </button>
@@ -292,7 +354,12 @@ export default function VendorRegisterPage() {
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5">Confirm Password</label>
-                                <input className={inputCls("confirmPassword")} type="password" placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} />
+                                <div className="relative">
+                                    <input className={inputCls("confirmPassword") + " pr-12"} type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter password" value={form.confirmPassword} onChange={(e) => set("confirmPassword", e.target.value)} suppressHydrationWarning />
+                                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
+                                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
                                 {errMsg("confirmPassword")}
                             </div>
                         </div>
@@ -393,9 +460,11 @@ export default function VendorRegisterPage() {
 
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">Upload CNIC Copy</label>
-                                <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${form.cnicFile ? "border-emerald-400 bg-emerald-50" : "border-gray-300 hover:border-virsa-primary hover:bg-virsa-primary/5"}`}>
-                                    <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => set("cnicFile", e.target.files?.[0]?.name ?? "")} />
-                                    {form.cnicFile ? (
+                                <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${uploadingFile ? "border-blue-400 bg-blue-50" : form.cnicFile ? "border-emerald-400 bg-emerald-50" : "border-gray-300 hover:border-virsa-primary hover:bg-virsa-primary/5"}`}>
+                                    <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileUpload} disabled={uploadingFile} />
+                                    {uploadingFile ? (
+                                        <div className="text-center"><Loader2 className="w-8 h-8 text-blue-500 mx-auto mb-2 animate-spin" /><p className="text-sm font-bold text-blue-700">Uploading...</p></div>
+                                    ) : form.cnicFile ? (
                                         <div className="text-center"><CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" /><p className="text-sm font-bold text-emerald-700">{form.cnicFile}</p></div>
                                     ) : (
                                         <div className="text-center"><UploadCloud className="w-8 h-8 text-gray-400 mx-auto mb-2" /><p className="text-sm font-bold text-gray-600">Click to upload</p><p className="text-xs text-gray-400 mt-1">PNG, JPG or PDF — max 5MB</p></div>
@@ -491,6 +560,24 @@ export default function VendorRegisterPage() {
                     Already have an account?{" "}
                     <Link href="/login" className="text-virsa-primary font-bold hover:underline">Sign In</Link>
                 </p>
+
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-center text-sm text-gray-600 mb-3">
+                        Just want to shop?
+                    </p>
+                    <Link 
+                        href="/register" 
+                        className="flex items-center justify-center gap-2 py-3 px-4 border-2 border-virsa-primary/20 rounded-xl hover:border-virsa-primary hover:bg-virsa-primary/5 transition-all group w-full"
+                    >
+                        <div className="w-8 h-8 bg-virsa-primary/10 rounded-full flex items-center justify-center group-hover:bg-virsa-primary/20 transition-colors">
+                            <User className="w-4 h-4 text-virsa-primary" />
+                        </div>
+                        <div className="text-left">
+                            <div className="text-sm font-bold text-gray-900">Sign up as Customer</div>
+                            <div className="text-xs text-gray-500">Browse and buy products</div>
+                        </div>
+                    </Link>
+                </div>
             </div>
         </div>
     );

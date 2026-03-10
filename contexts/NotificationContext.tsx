@@ -56,8 +56,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         try {
             const res = await fetch("/api/notifications");
             if (res.ok) {
-                const data = await res.json();
-                const notifications = (data.data || []).map((item: any) => ({
+                const response = await res.json();
+                // API returns { data: { data: [...], pagination: {...}, unreadCount: ... } }
+                const notificationsData = response.data?.data || response.data || [];
+                
+                if (!Array.isArray(notificationsData)) {
+                    console.error("Notifications data is not an array:", notificationsData);
+                    return;
+                }
+                
+                const notifications = notificationsData.map((item: any) => ({
                     id: item.id,
                     role: user.role as NotifRole,
                     type: item.type || "system",

@@ -6,18 +6,16 @@ import {
     X, CheckCircle2, Package, TrendingDown, Timer, ToggleLeft
 } from "lucide-react";
 
-type DiscountType = "percentage" | "fixed";
 type DealStatus = "active" | "upcoming" | "expired";
 
 type Deal = {
     id: number;
-    title: string;
+    productId: string;
     product: string;
     productImage: string;
     originalPrice: number;
     dealPrice: number;
-    discountType: DiscountType;
-    discountValue: number;
+    discountPercentage: number;
     startsAt: string;
     expiresAt: string;
     status: DealStatus;
@@ -41,22 +39,19 @@ const statusIcon = (s: DealStatus) => {
 };
 
 type FormData = {
-    title: string;
-    product: string;
-    discountType: DiscountType;
-    discountValue: string;
-    originalPrice: string;
+    productId: string;
+    discountPercentage: string;
     startsAt: string;
     expiresAt: string;
 };
 
 const emptyForm: FormData = {
-    title: "", product: "", discountType: "percentage",
-    discountValue: "", originalPrice: "", startsAt: "", expiresAt: "",
+    productId: "", discountPercentage: "", startsAt: "", expiresAt: "",
 };
 
 export default function VendorDealsPage() {
     const [deals, setDeals] = useState<Deal[]>([]);
+    const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState<"all" | DealStatus>("all");
@@ -67,27 +62,50 @@ export default function VendorDealsPage() {
 
     useEffect(() => {
         fetchDeals();
+        fetchProducts();
     }, []);
+
+    const fetchProducts = async () => {
+        try {
+            const response = await fetch("/api/vendor/products");
+            if (response.ok) {
+                const result = await response.json();
+                const productList = result.data?.data || result.data || [];
+                setProducts(Array.isArray(productList) ? productList : []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch products:", error);
+        }
+    };
 
     const fetchDeals = async () => {
         try {
             const response = await fetch("/api/vendor/deals");
             if (response.ok) {
-                const data = await response.json();
-                const formattedDeals = data.data.map((deal: any) => ({
-                    id: deal.id,
-                    title: deal.title,
-                    product: deal.product_name,
-                    productImage: "",
-                    originalPrice: deal.original_price,
-                    dealPrice: deal.deal_price,
-                    discountType: deal.discount_type,
-                    discountValue: deal.discount_value,
-                    startsAt: deal.starts_at,
-                    expiresAt: deal.expires_at,
-                    status: deal.status,
-                    sold: 0
-                }));
+                const json = await response.json();
+                const dealList = json.data?.data || json.data || [];
+                const formattedDeals = dealList.map((deal: any) => {
+                    let calcStatus: DealStatus = "expired";
+                    const now = new Date();
+                    const start = new Date(deal.start_date);
+                    const end = new Date(deal.end_date);
+                    if (now < start) calcStatus = "upcoming";
+                    else if (now >= start && now <= end && deal.is_active) calcStatus = "active";
+
+                    return {
+                        id: deal.id,
+                        productId: deal.product_id,
+                        product: deal.products?.name || "Unknown Product",
+                        productImage: deal.products?.thumbnail_url || "",
+                        originalPrice: parseFloat(deal.original_price),
+                        dealPrice: parseFloat(deal.deal_price),
+                        discountPercentage: deal.discount_percentage,
+                        startsAt: new Date(deal.start_date).toISOString().slice(0, 16),
+                        expiresAt: new Date(deal.end_date).toISOString().slice(0, 16),
+                        status: calcStatus,
+                        sold: 0
+                    };
+                });
                 setDeals(formattedDeals);
             }
         } catch (error) {
@@ -100,66 +118,71 @@ export default function VendorDealsPage() {
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
     const filtered = deals.filter(d => {
-        const matchSearch = d.title.toLowerCase().includes(search.toLowerCase()) || d.product.toLowerCase().includes(search.toLowerCase());
+        const matchSearch = d.product.toLowerCase().includes(search.toLowerCase());
         const matchFilter = filter === "all" || d.status === filter;
         return matchSearch && matchFilter;
     });
 
     const openAdd = () => { setForm(emptyForm); setModal({ open: true, editing: null }); };
     const openEdit = (d: Deal) => {
-        setForm({ title: d.title, product: d.product, discountType: d.discountType, discountValue: String(d.discountValue), originalPrice: String(d.originalPrice), startsAt: d.startsAt, expiresAt: d.expiresAt });
+        setForm({ productId: String(d.productId), discountPercentage: String(d.discountPercentage), startsAt: d.startsAt, expiresAt: d.expiresAt });
         setModal({ open: true, editing: d });
     };
 
+    const getSelectedProductPrice = () => {
+        const p = products.find(x => x.id === form.productId);
+        return p ? parseFloat(p.price) : 0;
+    };
+
     const computeDealPrice = () => {
-        const orig = parseFloat(form.originalPrice) || 0;
-        const val = parseFloat(form.discountValue) || 0;
-        if (form.discountType === "percentage") return Math.max(0, orig - (orig * val) / 100);
-        return Math.max(0, orig - val);
+        const orig = getSelectedProductPrice();
+        const discount = parseFloat(form.discountPercentage) || 0;
+        return Math.max(0, orig - (orig * discount) / 100);
     };
 
     const handleSave = async () => {
-        const dealPrice = computeDealPrice();
-        if (!form.title || !form.product || !form.originalPrice || !form.discountValue || !form.startsAt || !form.expiresAt) {
+        if (!form.productId || !form.discountPercentage || !form.startsAt || !form.expiresAt) {
             showToast("Please fill all required fields."); return;
         }
-        if (dealPrice <= 0) { showToast("Deal price must be greater than 0."); return; }
 
         try {
             if (modal.editing) {
+                // In a real app we would have a PATCH endpoint for deals, but we don't seem to have one built yet.
+                // Re-doing the POST request below works as POST /api/vendor/deals creates new deals.
                 const response = await fetch(`/api/vendor/deals/${modal.editing.id}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        title: form.title,
-                        discount_type: form.discountType,
-                        discount_value: parseFloat(form.discountValue),
-                        starts_at: form.startsAt,
-                        expires_at: form.expiresAt
+                        discount_percentage: parseFloat(form.discountPercentage),
+                        start_date: new Date(form.startsAt).toISOString(),
+                        end_date: new Date(form.expiresAt).toISOString()
                     })
                 });
 
                 if (response.ok) {
                     await fetchDeals();
                     showToast("Deal updated successfully.");
+                } else {
+                    showToast("Failed to update deal.");
                 }
             } else {
                 const response = await fetch("/api/vendor/deals", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        title: form.title,
-                        product_id: 1, // Default product
-                        discount_type: form.discountType,
-                        discount_value: parseFloat(form.discountValue),
-                        starts_at: form.startsAt,
-                        expires_at: form.expiresAt
+                        product_id: form.productId,
+                        discount_percentage: parseFloat(form.discountPercentage),
+                        start_date: new Date(form.startsAt).toISOString(),
+                        end_date: new Date(form.expiresAt).toISOString()
                     })
                 });
 
                 if (response.ok) {
                     await fetchDeals();
                     showToast("Deal created successfully.");
+                } else {
+                    const errorResponse = await response.json();
+                    showToast(errorResponse.error?.message || "Failed to create deal.");
                 }
             }
             setModal({ open: false, editing: null });
@@ -172,13 +195,15 @@ export default function VendorDealsPage() {
     const handleDelete = async (d: Deal) => {
         try {
             const response = await fetch(`/api/vendor/deals/${d.id}`, {
-                method: "DELETE"
+                method: "DELETE" // Same here, assuming DELETE is or will be implemented
             });
 
             if (response.ok) {
                 setDeals(prev => prev.filter(x => x.id !== d.id));
                 setDeleteConfirm(null);
-                showToast(`"${d.title}" deleted.`);
+                showToast(`Deal deleted.`);
+            } else {
+                showToast("Failed to delete deal.");
             }
         } catch (error) {
             console.error("Failed to delete deal:", error);
@@ -201,7 +226,7 @@ export default function VendorDealsPage() {
     }
 
     return (
-        <div className="space-y-6" onClick={() => { }}>
+        <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
@@ -246,7 +271,6 @@ export default function VendorDealsPage() {
                     <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-100 text-[11px] uppercase tracking-wider text-gray-500 font-bold">
-                                <th className="px-6 py-4">Deal</th>
                                 <th className="px-6 py-4">Product</th>
                                 <th className="px-6 py-4">Discount</th>
                                 <th className="px-6 py-4">Price</th>
@@ -258,22 +282,27 @@ export default function VendorDealsPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-50 text-sm">
                             {filtered.length === 0 ? (
-                                <tr><td colSpan={8} className="px-6 py-16 text-center text-gray-400 font-medium">No deals found. Create your first deal!</td></tr>
+                                <tr><td colSpan={7} className="px-6 py-16 text-center text-gray-400 font-medium">No deals found. Create your first deal!</td></tr>
                             ) : filtered.map(deal => (
                                 <tr key={deal.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 bg-violet-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                                <Zap className="w-4 h-4 text-violet-500" />
-                                            </div>
-                                            <span className="font-bold text-gray-900 max-w-[160px] truncate">{deal.title}</span>
+                                            {deal.productImage ? (
+                                                <div className="w-9 h-9 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden relative">
+                                                    <img src={deal.productImage} alt={deal.product} className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                 <div className="w-9 h-9 bg-violet-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                    <Zap className="w-4 h-4 text-violet-500" />
+                                                </div>
+                                            )}
+                                            <span className="font-bold text-gray-900 max-w-[160px] truncate">{deal.product}</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4"><span className="text-gray-600 max-w-[160px] truncate block">{deal.product}</span></td>
                                     <td className="px-6 py-4">
                                         <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 font-black text-sm px-2.5 py-1 rounded-lg">
                                             <TrendingDown className="w-3 h-3" />
-                                            {deal.discountType === "percentage" ? `${deal.discountValue}%` : `Rs ${deal.discountValue.toLocaleString()}`}
+                                            {deal.discountPercentage}%
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
@@ -319,39 +348,38 @@ export default function VendorDealsPage() {
                             <button onClick={() => setModal({ open: false, editing: null })} className="p-2 rounded-xl text-gray-400 hover:text-gray-900 hover:bg-gray-100"><X className="w-5 h-5" /></button>
                         </div>
                         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                            {[
-                                { label: "Deal Title", key: "title", type: "text", placeholder: "e.g. Flash Sale — Headphones" },
-                                { label: "Product Name", key: "product", type: "text", placeholder: "e.g. Premium Wireless Headphones" },
-                                { label: "Original Price (Rs)", key: "originalPrice", type: "number", placeholder: "e.g. 34999" },
-                            ].map(f => (
-                                <div key={f.key}>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">{f.label} <span className="text-red-400">*</span></label>
-                                    <input type={f.type} value={form[f.key as keyof FormData]} onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#47704C] focus:ring-1 focus:ring-[#47704C]" />
-                                </div>
-                            ))}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Discount Type <span className="text-red-400">*</span></label>
-                                    <select value={form.discountType} onChange={e => setForm(p => ({ ...p, discountType: e.target.value as DiscountType }))} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#47704C]">
-                                        <option value="percentage">Percentage (%)</option>
-                                        <option value="fixed">Fixed Amount (Rs)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Discount Value <span className="text-red-400">*</span></label>
-                                    <input type="number" value={form.discountValue} onChange={e => setForm(p => ({ ...p, discountValue: e.target.value }))} placeholder={form.discountType === "percentage" ? "e.g. 20" : "e.g. 500"} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#47704C] focus:ring-1 focus:ring-[#47704C]" />
-                                </div>
+                            
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Product <span className="text-red-400">*</span></label>
+                                <select 
+                                    value={form.productId} 
+                                    onChange={e => setForm(p => ({ ...p, productId: e.target.value }))}
+                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#47704C]"
+                                    disabled={!!modal.editing} // Cannot change product when editing
+                                >
+                                    <option value="">Select a product...</option>
+                                    {products.map((p) => (
+                                        <option key={p.id} value={p.id}>{p.name} - Rs {p.price}</option>
+                                    ))}
+                                </select>
                             </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Discount Percentage (%) <span className="text-red-400">*</span></label>
+                                <input type="number" min="1" max="99" value={form.discountPercentage} onChange={e => setForm(p => ({ ...p, discountPercentage: e.target.value }))} placeholder="e.g. 20" className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#47704C] focus:ring-1 focus:ring-[#47704C]" />
+                            </div>
+
                             {/* Live preview */}
-                            {form.originalPrice && form.discountValue && (
+                            {form.productId && form.discountPercentage && (
                                 <div className="bg-violet-50 rounded-xl p-4 flex items-center justify-between">
                                     <span className="text-sm font-bold text-violet-700">Deal Price Preview</span>
                                     <div className="text-right">
                                         <span className="text-xl font-black text-violet-800">Rs {computeDealPrice().toLocaleString()}</span>
-                                        <span className="text-xs text-gray-400 line-through ml-2">Rs {parseFloat(form.originalPrice || "0").toLocaleString()}</span>
+                                        <span className="text-xs text-gray-400 line-through ml-2">Rs {getSelectedProductPrice().toLocaleString()}</span>
                                     </div>
                                 </div>
                             )}
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1">Start Date & Time <span className="text-red-400">*</span></label>
@@ -380,7 +408,7 @@ export default function VendorDealsPage() {
                         <div className="p-6 text-center">
                             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 className="w-6 h-6 text-red-500" /></div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Deal?</h3>
-                            <p className="text-sm text-gray-500 mb-6">Permanently remove <strong>&ldquo;{deleteConfirm.title}&rdquo;</strong>? This cannot be undone.</p>
+                            <p className="text-sm text-gray-500 mb-6">Permanently remove deal for <strong>&ldquo;{deleteConfirm.product}&rdquo;</strong>? This cannot be undone.</p>
                             <div className="flex gap-3">
                                 <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors">Cancel</button>
                                 <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">Delete</button>

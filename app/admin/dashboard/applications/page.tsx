@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
     Store, Clock, CheckCircle2, XCircle, Eye, ChevronRight, Search,
-    Filter, Download, MapPin, Phone, Mail, Calendar, Building2,
+    Download, MapPin, Phone, Mail, Calendar, Building2,
     FileText, CreditCard, AlertCircle, MessageSquare, X, RefreshCcw,
     User, ShieldCheck, Loader2
 } from "lucide-react";
@@ -22,6 +22,7 @@ type Application = {
     city: string;
     businessType: string;
     cnic: string;
+    cnicDocumentUrl?: string;
     bankName: string;
     iban: string;
     description: string;
@@ -30,58 +31,10 @@ type Application = {
     reviewNote?: string;
     socialLinks: { website?: string; instagram?: string };
     docsUploaded: boolean;
+    logo: string;
 };
 
-/* ─── Mock Data ─── */
-const INITIAL_APPS: Application[] = [
-    {
-        id: "APP-001", storeName: "StyleMates Boutique", category: "Fashion & Clothing",
-        ownerName: "Anam Tariq", email: "anam@stylematespk.com", phone: "03211234567",
-        city: "Lahore", businessType: "Individual / Sole Proprietor",
-        cnic: "35202-1234567-1", bankName: "HBL", iban: "PK36HABB0000001234567802",
-        description: "Premium women's fashion boutique offering local and imported clothing collections. Serving customers since 2020 through physical stores and now expanding online.",
-        submittedAt: "Feb 28, 2026 – 7:34 AM", status: "Pending",
-        socialLinks: { instagram: "@stylematespk" }, docsUploaded: true,
-    },
-    {
-        id: "APP-002", storeName: "Home Luxe Store", category: "Home & Garden",
-        ownerName: "Fahad Mehmood", email: "fahad@homeluxe.pk", phone: "03001122334",
-        city: "Karachi", businessType: "Private Limited Company",
-        cnic: "42201-9988776-5", bankName: "Meezan Bank", iban: "PK70MEZN0000001122334455",
-        description: "High-end home décor and furniture retailer. Registered private limited company with 5 years of e-commerce experience.",
-        submittedAt: "Feb 27, 2026 – 2:10 PM", status: "Under Review",
-        socialLinks: { website: "https://homeluxe.pk", instagram: "@homeluxepk" }, docsUploaded: true,
-    },
-    {
-        id: "APP-003", storeName: "TechZone PK", category: "Electronics",
-        ownerName: "Bilal Qureshi", email: "bilal@techzone.pk", phone: "03451239876",
-        city: "Islamabad", businessType: "Partnership",
-        cnic: "61101-5566778-3", bankName: "Bank Alfalah", iban: "PK30ALFA0001001234567890",
-        description: "Authorized reseller of consumer electronics including laptops, phones, and accessories. Partnered with Samsung and Xiaomi.",
-        submittedAt: "Feb 26, 2026 – 10:55 AM", status: "Pending",
-        socialLinks: { website: "https://techzone.pk" }, docsUploaded: false,
-    },
-    {
-        id: "APP-004", storeName: "Beauty Bloom PK", category: "Beauty & Health",
-        ownerName: "Sana Mirza", email: "sana@beautybloom.pk", phone: "03129988776",
-        city: "Rawalpindi", businessType: "Individual / Sole Proprietor",
-        cnic: "37405-7788990-4", bankName: "MCB", iban: "PK07MUCB0000001100231702",
-        description: "Skincare and beauty products marketplace. Stocks 200+ authentic international and local beauty brands.",
-        submittedAt: "Feb 25, 2026 – 9:00 AM", status: "Approved",
-        reviewNote: "All documents verified. Store approved and activated.",
-        socialLinks: { instagram: "@beautybloompk" }, docsUploaded: true,
-    },
-    {
-        id: "APP-005", storeName: "QuickShip Electronics", category: "Electronics",
-        ownerName: "Imran Siddique", email: "imran@quickship.pk", phone: "03331122445",
-        city: "Faisalabad", businessType: "Individual / Sole Proprietor",
-        cnic: "33102-1122334-7", bankName: "UBL", iban: "PK29UNIL0010001234567890",
-        description: "Budget electronics retailer.",
-        submittedAt: "Feb 24, 2026 – 3:30 PM", status: "Rejected",
-        reviewNote: "Insufficient documentation. CNIC copy is blurry and business description is too vague. Please reapply with proper details.",
-        socialLinks: {}, docsUploaded: false,
-    },
-];
+/* ─── No mock data — data is fetched from /api/admin/vendors ─── */
 
 /* ─── Helpers ─── */
 const STATUS_STYLE: Record<AppStatus, string> = {
@@ -188,12 +141,24 @@ function DetailModal({
                                     <span className="text-gray-500">CNIC</span>
                                     <span className="font-mono text-gray-800 font-medium text-xs">{app.cnic}</span>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-500">CNIC Copy</span>
-                                    {app.docsUploaded
-                                        ? <span className="text-emerald-600 font-bold text-xs flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Uploaded</span>
-                                        : <span className="text-red-500 font-bold text-xs flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> Missing</span>}
-                                </div>
+                                {app.cnicDocumentUrl ? (
+                                    <a 
+                                        href={app.cnicDocumentUrl} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-center gap-2 bg-virsa-primary text-white rounded-lg p-2.5 mt-2 hover:bg-virsa-primary/90 transition-colors text-xs font-bold"
+                                    >
+                                        <Eye className="w-3.5 h-3.5" />
+                                        View CNIC Document
+                                    </a>
+                                ) : (
+                                    <div className="bg-gray-100 border border-gray-200 rounded-lg p-2 mt-2">
+                                        <p className="text-xs text-gray-600 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            No document uploaded. Verify CNIC manually.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
@@ -295,6 +260,8 @@ export default function AdminApplicationsPage() {
     const [selected, setSelected] = useState<Application | null>(null);
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     // Fetch applications from backend
     useEffect(() => {
@@ -307,18 +274,21 @@ export default function AdminApplicationsPage() {
                 const data = await response.json();
                 
                 // Transform backend data to match Application type
-                const transformedApps: Application[] = data.vendors.map((vendor: any) => ({
+                const transformedApps: Application[] = (data.data?.data || []).map((vendor: any) => ({
                     id: vendor.id,
                     storeName: vendor.store_name,
-                    category: vendor.category || "General",
-                    ownerName: vendor.owner_name,
+                    category: "General", // Not stored in vendors table
+                    ownerName: vendor.metadata?.first_name && vendor.metadata?.last_name 
+                        ? `${vendor.metadata.first_name} ${vendor.metadata.last_name}`
+                        : vendor.users?.full_name || "N/A",
                     email: vendor.email,
                     phone: vendor.phone || "N/A",
-                    city: vendor.city || "N/A",
-                    businessType: vendor.business_type || "Individual / Sole Proprietor",
-                    cnic: vendor.cnic || "N/A",
-                    bankName: vendor.bank_details?.bank_name || "N/A",
-                    iban: vendor.bank_details?.iban || "N/A",
+                    city: vendor.metadata?.city || "N/A",
+                    businessType: "Individual / Sole Proprietor", // Not stored in vendors table
+                    cnic: vendor.metadata?.cnic || "N/A",
+                    cnicDocumentUrl: vendor.cnic_document_url,
+                    bankName: vendor.vendor_bank_details?.bank_name || "N/A",
+                    iban: vendor.vendor_bank_details?.iban || "N/A",
                     description: vendor.description || "No description provided.",
                     submittedAt: new Date(vendor.created_at).toLocaleDateString("en-US", {
                         month: "short",
@@ -330,12 +300,13 @@ export default function AdminApplicationsPage() {
                     status: vendor.status === "pending" ? "Pending" : 
                             vendor.status === "active" ? "Approved" : 
                             vendor.status === "rejected" ? "Rejected" : "Pending",
-                    reviewNote: vendor.review_note,
+                    reviewNote: vendor.rejection_reason,
                     socialLinks: {
-                        website: vendor.website,
-                        instagram: vendor.instagram,
+                        website: "",
+                        instagram: "",
                     },
-                    docsUploaded: !!vendor.cnic && !!vendor.bank_details?.iban,
+                    docsUploaded: !!vendor.cnic_document_url,
+                    logo: vendor.logo_url || "/images/vendors/vendor1.png"
                 }));
                 
                 setApps(transformedApps);
@@ -361,8 +332,7 @@ export default function AdminApplicationsPage() {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
-                    status: "active",
-                    review_note: "All documents verified. Store approved and activated."
+                    action: "approve",
                 }),
             });
 
@@ -394,8 +364,8 @@ export default function AdminApplicationsPage() {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
-                    status: "rejected",
-                    review_note: note
+                    action: "reject",
+                    reason: note
                 }),
             });
 
@@ -431,6 +401,17 @@ export default function AdminApplicationsPage() {
             a.email.toLowerCase().includes(search.toLowerCase()) ||
             a.id.toLowerCase().includes(search.toLowerCase())
         );
+
+    // Pagination
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedApps = filtered.slice(startIndex, endIndex);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, statusFilter]);
 
     return (
         <div className="space-y-6" onClick={() => { }}>
@@ -527,7 +508,7 @@ export default function AdminApplicationsPage() {
                 </div>
             ) : (
                 <div className="space-y-3">
-                    {filtered.map(app => (
+                    {paginatedApps.map(app => (
                         <div
                             key={app.id}
                             className={`bg-white rounded-2xl border shadow-sm hover:shadow-md transition-all group ${app.status === "Pending" ? "border-amber-200 bg-amber-50/20" : app.status === "Under Review" ? "border-blue-200 bg-blue-50/10" : "border-gray-100"}`}
@@ -584,6 +565,46 @@ export default function AdminApplicationsPage() {
                             )}
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex justify-between items-center">
+                    <span className="text-xs text-gray-500">
+                        Showing {startIndex + 1}-{Math.min(endIndex, filtered.length)} of {filtered.length}
+                    </span>
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            PREV
+                        </button>
+                        <div className="flex gap-1">
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => setCurrentPage(page)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                        currentPage === page 
+                                            ? 'bg-virsa-primary text-white' 
+                                            : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
+                        </div>
+                        <button 
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            NEXT
+                        </button>
+                    </div>
                 </div>
             )}
 

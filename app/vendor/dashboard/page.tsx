@@ -13,9 +13,15 @@ type Stats = {
     storeViews: number;
 };
 
+type Analytics = {
+    labels: string[];
+    revenue: number[];
+};
+
 export default function VendorDashboardPage() {
     const [orders, setOrders] = useState<PendingOrder[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
+    const [analytics, setAnalytics] = useState<Analytics | null>(null);
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [confirmShip, setConfirmShip] = useState<PendingOrder | null>(null);
@@ -27,9 +33,10 @@ export default function VendorDashboardPage() {
 
     const fetchDashboardData = async () => {
         try {
-            const [statsRes, ordersRes] = await Promise.all([
+            const [statsRes, ordersRes, analyticsRes] = await Promise.all([
                 fetch("/api/vendor/stats"),
-                fetch("/api/vendor/orders?status=pending&limit=5")
+                fetch("/api/vendor/orders?status=pending&limit=5"),
+                fetch("/api/vendor/analytics")
             ]);
 
             if (statsRes.ok) {
@@ -39,14 +46,20 @@ export default function VendorDashboardPage() {
 
             if (ordersRes.ok) {
                 const ordersData = await ordersRes.json();
-                const formattedOrders = ordersData.data.map((order: any) => ({
-                    id: order.order_number,
-                    customer: order.customer_name,
-                    product: order.items?.[0]?.product_name || "Order",
-                    amount: order.total_amount,
-                    image: order.items?.[0]?.product_image || "/images/products/product1.jpg"
+                const orderItems = ordersData.data?.data || ordersData.data || [];
+                const formattedOrders = orderItems.map((item: any) => ({
+                    id: item.orders?.order_number || item.order_id,
+                    customer: item.orders?.shipping_full_name || "Customer",
+                    product: item.product_name || "Order",
+                    amount: parseFloat(item.subtotal || 0),
+                    image: item.product_thumbnail || "/images/products/product1.jpg"
                 }));
                 setOrders(formattedOrders);
+            }
+
+            if (analyticsRes.ok) {
+                const analyticsData = await analyticsRes.json();
+                setAnalytics(analyticsData.data);
             }
         } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
@@ -129,13 +142,28 @@ export default function VendorDashboardPage() {
                     </div>
                     <div className="aspect-[2/1] bg-gradient-to-t from-virsa-light/20 to-transparent border-b-2 border-virsa-primary/20 rounded-lg flex items-end relative overflow-hidden">
                         <div className="absolute inset-0 flex items-end justify-between px-4 pb-0 opacity-80">
-                            {[40, 60, 45, 80, 55, 90, 75].map((h, i) => (
-                                <div key={i} className="w-[10%] bg-virsa-primary rounded-t-sm hover:opacity-80 transition-opacity cursor-pointer" style={{ height: `${h}%` }} title={`Rs ${h * 84}`} />
-                            ))}
+                            {analytics ? (
+                                analytics.revenue.map((amount, i) => {
+                                    const maxRevenue = Math.max(...analytics.revenue, 1);
+                                    const height = (amount / maxRevenue) * 100;
+                                    return (
+                                        <div 
+                                            key={i} 
+                                            className="w-[10%] bg-virsa-primary rounded-t-sm hover:opacity-80 transition-opacity cursor-pointer" 
+                                            style={{ height: `${height}%` }} 
+                                            title={`Rs ${amount.toLocaleString()}`} 
+                                        />
+                                    );
+                                })
+                            ) : (
+                                [40, 60, 45, 80, 55, 90, 75].map((h, i) => (
+                                    <div key={i} className="w-[10%] bg-virsa-primary rounded-t-sm hover:opacity-80 transition-opacity cursor-pointer" style={{ height: `${h}%` }} />
+                                ))
+                            )}
                         </div>
                     </div>
                     <div className="flex justify-between px-4 mt-2">
-                        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => (
+                        {(analytics?.labels || ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]).map(d => (
                             <span key={d} className="text-[10px] font-bold text-gray-400 uppercase">{d}</span>
                         ))}
                     </div>

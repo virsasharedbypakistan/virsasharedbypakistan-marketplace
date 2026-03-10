@@ -14,9 +14,24 @@ type Stats = {
     totalOrders: number;
 };
 
+type AnalyticsData = {
+    daily: Array<{
+        date: string;
+        label: string;
+        revenue: number;
+        commission: number;
+    }>;
+    summary: {
+        totalRevenue: number;
+        totalCommission: number;
+        averageDaily: number;
+    };
+};
+
 export default function AdminDashboardPage() {
     const [pendingVendors, setPendingVendors] = useState<PendingVendor[]>([]);
     const [stats, setStats] = useState<Stats | null>(null);
+    const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [approveConfirm, setApproveConfirm] = useState<PendingVendor | null>(null);
     const [rejectConfirm, setRejectConfirm] = useState<PendingVendor | null>(null);
@@ -29,26 +44,38 @@ export default function AdminDashboardPage() {
 
     const fetchDashboardData = async () => {
         try {
-            const [statsRes, vendorsRes] = await Promise.all([
+            const [statsRes, vendorsRes, analyticsRes] = await Promise.all([
                 fetch("/api/admin/stats"),
-                fetch("/api/admin/vendors?status=pending&limit=5")
+                fetch("/api/admin/vendors?status=pending&limit=5"),
+                fetch("/api/admin/analytics")
             ]);
 
             if (statsRes.ok) {
                 const statsData = await statsRes.json();
-                setStats(statsData.data);
+                const s = statsData.data;
+                setStats({
+                    totalRevenue: s.revenue?.total ?? 0,
+                    activeVendors: s.vendors?.active ?? 0,
+                    totalCustomers: s.users?.total ?? 0,
+                    totalOrders: s.orders?.total ?? 0,
+                });
             }
 
             if (vendorsRes.ok) {
                 const vendorsData = await vendorsRes.json();
-                const formattedVendors = vendorsData.data.map((v: any) => ({
+                const formattedVendors = (vendorsData.data?.data || []).map((v: any) => ({
                     id: v.id,
                     name: v.store_name,
                     email: v.email,
                     appliedAgo: getTimeAgo(v.created_at),
-                    logo: "/images/vendors/vendor1.png"
+                    logo: v.logo_url || "/images/vendors/vendor1.png"
                 }));
                 setPendingVendors(formattedVendors);
+            }
+
+            if (analyticsRes.ok) {
+                const analyticsData = await analyticsRes.json();
+                setAnalytics(analyticsData.data);
             }
         } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
@@ -176,36 +203,67 @@ export default function AdminDashboardPage() {
                             <Activity className="w-5 h-5 text-[#47704C]" />
                             Revenue & Commission
                         </h2>
-                        <select className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:border-virsa-primary">
-                            <option>This Week</option>
-                            <option>This Month</option>
-                        </select>
+                        <div className="text-sm text-gray-500 font-medium">Last 7 Days</div>
                     </div>
-                    <div className="h-64 flex items-end justify-between gap-2 px-4 relative">
-                        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-8 border-b border-[#E2E8F0]">
-                            {[1, 2, 3, 4, 5].map((_, i) => (
-                                <div key={i} className="w-full h-[1px] bg-[#F1F5F9] relative">
-                                    <span className="absolute -left-10 -top-2 text-[10px] font-bold text-[#94A3B8]">{50 - i * 10}k</span>
-                                </div>
-                            ))}
+                    {analytics ? (
+                        <div className="h-64 flex items-end justify-between gap-2 px-4 relative">
+                            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-8 border-b border-[#E2E8F0]">
+                                {[1, 2, 3, 4, 5].map((_, i) => {
+                                    const maxValue = Math.max(...analytics.daily.map(d => d.revenue));
+                                    const step = Math.ceil(maxValue / 5000) * 1000;
+                                    const value = (5 - i) * step;
+                                    return (
+                                        <div key={i} className="w-full h-[1px] bg-[#F1F5F9] relative">
+                                            <span className="absolute -left-10 -top-2 text-[10px] font-bold text-[#94A3B8]">
+                                                {value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="w-full h-full flex items-end justify-around relative z-10 pb-[1px]">
+                                {analytics.daily.map((day, i) => {
+                                    const maxValue = Math.max(...analytics.daily.map(d => d.revenue));
+                                    const revenueHeight = maxValue > 0 ? (day.revenue / maxValue) * 100 : 0;
+                                    const commissionHeight = maxValue > 0 ? (day.commission / maxValue) * 100 : 0;
+                                    return (
+                                        <div key={i} className="flex gap-1 h-full items-end pb-8 group relative">
+                                            <div 
+                                                className="w-8 bg-[#47704C] rounded-t-md hover:opacity-80 transition-opacity cursor-pointer" 
+                                                style={{ height: `${Math.max(revenueHeight, 2)}%` }}
+                                                title={`Revenue: Rs ${day.revenue.toLocaleString()}`}
+                                            />
+                                            <div 
+                                                className="w-8 bg-[#FFD242] rounded-t-md hover:opacity-80 transition-opacity cursor-pointer" 
+                                                style={{ height: `${Math.max(commissionHeight, 2)}%` }}
+                                                title={`Commission: Rs ${day.commission.toLocaleString()}`}
+                                            />
+                                            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap pointer-events-none">
+                                                Rs {day.revenue.toLocaleString()}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="absolute bottom-0 left-0 w-full flex justify-around px-8 pt-4">
+                                {analytics.daily.map((day, i) => (
+                                    <span key={i} className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">{day.label}</span>
+                                ))}
+                            </div>
                         </div>
-                        <div className="w-full h-full flex items-end justify-around relative z-10 pb-[1px]">
-                            {[20, 35, 25, 45, 30, 60, 40].map((h, i) => (
-                                <div key={i} className="flex gap-1 h-full items-end pb-8">
-                                    <div className="w-8 bg-[#47704C] rounded-t-md hover:opacity-80 transition-opacity cursor-pointer" style={{ height: `${h}%` }} />
-                                    <div className="w-8 bg-[#FFD242] rounded-t-md hover:opacity-80 transition-opacity cursor-pointer" style={{ height: `${h * 0.15}%` }} />
-                                </div>
-                            ))}
+                    ) : (
+                        <div className="h-64 flex items-center justify-center text-gray-400">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-virsa-primary"></div>
                         </div>
-                        <div className="absolute bottom-0 left-0 w-full flex justify-around px-8 pt-4">
-                            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
-                                <span key={day} className="text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">{day}</span>
-                            ))}
-                        </div>
-                    </div>
+                    )}
                     <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100">
                         <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#47704C]" /><span className="text-xs font-medium text-gray-500">Revenue</span></div>
                         <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-sm bg-[#FFD242]" /><span className="text-xs font-medium text-gray-500">Commission</span></div>
+                        {analytics && (
+                            <div className="ml-auto text-xs text-gray-500">
+                                Total: <span className="font-bold text-gray-900">Rs {analytics.summary.totalRevenue.toLocaleString()}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 

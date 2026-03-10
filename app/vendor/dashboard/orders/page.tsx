@@ -41,15 +41,31 @@ export default function VendorOrdersPage() {
         try {
             const response = await fetch("/api/vendor/orders");
             if (response.ok) {
-                const data = await response.json();
-                const formattedOrders = data.data.map((order: any) => ({
-                    id: order.order_number,
-                    date: new Date(order.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-                    customer: order.customer_name,
-                    items: order.items?.length || 0,
-                    total: order.total_amount,
-                    status: order.status.charAt(0).toUpperCase() + order.status.slice(1) as Order["status"]
-                }));
+                const result = await response.json();
+                const orderItems = result.data?.data || result.data || [];
+                
+                // Group order items by order_number
+                const orderMap = new Map<string, any>();
+                
+                orderItems.forEach((item: any) => {
+                    const orderNumber = item.orders?.order_number || item.order_id;
+                    if (!orderMap.has(orderNumber)) {
+                        orderMap.set(orderNumber, {
+                            id: orderNumber,
+                            date: new Date(item.orders?.created_at || item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+                            customer: item.orders?.shipping_full_name || "Customer",
+                            items: 0,
+                            total: 0,
+                            status: (item.item_status || "new").charAt(0).toUpperCase() + (item.item_status || "new").slice(1) as Order["status"]
+                        });
+                    }
+                    
+                    const order = orderMap.get(orderNumber);
+                    order.items += 1;
+                    order.total += parseFloat(item.subtotal || 0);
+                });
+                
+                const formattedOrders = Array.from(orderMap.values());
                 setOrders(formattedOrders);
             }
         } catch (error) {

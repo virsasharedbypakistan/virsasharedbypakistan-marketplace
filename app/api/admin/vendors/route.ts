@@ -19,17 +19,18 @@ export async function GET(request: NextRequest) {
       .select(
         `
         id, user_id, store_name, store_slug, description, logo_url,
-        phone, email, approval_status, rejection_reason,
+        phone, email, status, rejection_reason, metadata, cnic_document_url,
         commission_type, commission_rate, average_rating, total_reviews,
         total_sales, balance, approved_by, approved_at, created_at,
-        users!inner(full_name, email)
+        users!vendors_user_id_fkey(full_name, email),
+        vendor_bank_details(bank_name, iban, account_holder_name)
       `,
         { count: 'exact' }
       );
 
     // Status filter
     if (status && status !== 'all') {
-      query = query.eq('approval_status', status);
+      query = query.eq('status', status);
     }
 
     // Search filter

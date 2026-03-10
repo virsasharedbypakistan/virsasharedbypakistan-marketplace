@@ -1,23 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Store, MapPin, Lock, Bell, CreditCard, CheckCircle2, Eye, EyeOff } from "lucide-react";
 
 type Tab = "Store Profile" | "Payout Details" | "Notifications" | "Security";
 
 export default function VendorSettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>("Store Profile");
+    const [loading, setLoading] = useState(true);
 
     // Store Profile state
-    const [profile, setProfile] = useState({ name: "Khyber Crafts PK", email: "contact@khybercrafts.pk", description: "We bring authentic Pakistani handicrafts and textiles from Khyber Pakhtunkhwa directly to you. Every piece is handcrafted by local artisans.", url: "khyber-crafts" });
+    const [profile, setProfile] = useState({ name: "", email: "", description: "", url: "" });
     const [profileSaved, setProfileSaved] = useState(false);
+    const [vendorStatus, setVendorStatus] = useState<string>("");
 
     // Payout state
-    const [payout, setPayout] = useState({ bankName: "HBL Pakistan", accountTitle: "Khyber Crafts PK", accountNumber: "0012345678901234", iban: "PK36SCBL0000001123456702" });
+    const [payout, setPayout] = useState({ bankName: "", accountTitle: "", accountNumber: "", iban: "" });
     const [payoutSaved, setPayoutSaved] = useState(false);
 
     // Notifications state
     const [notifs, setNotifs] = useState({ newOrder: true, orderStatus: true, lowStock: true, reviews: false, promotions: false });
+    const [notifsSaved, setNotifsSaved] = useState(false);
 
     // Security state
     const [passwords, setPasswords] = useState({ current: "", newPw: "", confirm: "" });
@@ -25,14 +28,152 @@ export default function VendorSettingsPage() {
     const [passwordError, setPasswordError] = useState("");
     const [passwordSaved, setPasswordSaved] = useState(false);
 
-    const handleSaveProfile = () => { setProfileSaved(true); setTimeout(() => setProfileSaved(false), 3000); };
-    const handleSavePayout = () => { setPayoutSaved(true); setTimeout(() => setPayoutSaved(false), 3000); };
-    const handleSavePassword = () => {
-        if (!passwords.current || !passwords.newPw || !passwords.confirm) return setPasswordError("Please fill all fields.");
-        if (passwords.newPw !== passwords.confirm) return setPasswordError("Passwords do not match.");
-        if (passwords.newPw.length < 8) return setPasswordError("Password must be at least 8 characters.");
-        setPasswordError(""); setPasswordSaved(true); setPasswords({ current: "", newPw: "", confirm: "" });
-        setTimeout(() => setPasswordSaved(false), 3000);
+    // Fetch vendor profile on mount
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const response = await fetch("/api/vendor/profile");
+                if (response.ok) {
+                    const result = await response.json();
+                    const vendor = result.data;
+                    setProfile({
+                        name: vendor.store_name || "",
+                        email: vendor.store_email || "",
+                        description: vendor.store_description || "",
+                        url: vendor.slug || ""
+                    });
+                    setVendorStatus(vendor.status || "");
+                    setPayout({
+                        bankName: vendor.bank_name || "",
+                        accountTitle: vendor.account_title || "",
+                        accountNumber: vendor.account_number || "",
+                        iban: vendor.iban || ""
+                    });
+                    setNotifs({
+                        newOrder: vendor.notification_new_order ?? true,
+                        orderStatus: vendor.notification_order_status ?? true,
+                        lowStock: vendor.notification_low_stock ?? true,
+                        reviews: vendor.notification_reviews ?? false,
+                        promotions: vendor.notification_promotions ?? false,
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch profile:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchProfile();
+    }, []);
+
+    const handleSaveProfile = async () => {
+        try {
+            const response = await fetch("/api/vendor/profile", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    store_name: profile.name,
+                    store_email: profile.email,
+                    store_description: profile.description,
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                setProfileSaved(true);
+                setTimeout(() => setProfileSaved(false), 3000);
+            } else {
+                // Show error if store name change was blocked
+                alert(result.error || "Failed to update profile");
+            }
+        } catch (error) {
+            console.error("Failed to save profile:", error);
+            alert("Failed to update profile. Please try again.");
+        }
+    };
+
+    const handleSavePayout = async () => {
+        try {
+            const response = await fetch("/api/vendor/profile", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    bank_name: payout.bankName,
+                    account_title: payout.accountTitle,
+                    account_number: payout.accountNumber,
+                    iban: payout.iban,
+                })
+            });
+            if (response.ok) {
+                setPayoutSaved(true);
+                setTimeout(() => setPayoutSaved(false), 3000);
+            }
+        } catch (error) {
+            console.error("Failed to save payout:", error);
+        }
+    };
+
+    const handleSavePassword = async () => {
+        if (!passwords.current || !passwords.newPw || !passwords.confirm) {
+            setPasswordError("Please fill all fields.");
+            return;
+        }
+        if (passwords.newPw !== passwords.confirm) {
+            setPasswordError("Passwords do not match.");
+            return;
+        }
+        if (passwords.newPw.length < 8) {
+            setPasswordError("Password must be at least 8 characters.");
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/auth/change-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    currentPassword: passwords.current,
+                    newPassword: passwords.newPw,
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setPasswordError("");
+                setPasswordSaved(true);
+                setPasswords({ current: "", newPw: "", confirm: "" });
+                setTimeout(() => setPasswordSaved(false), 3000);
+            } else {
+                setPasswordError(result.error || "Failed to update password");
+            }
+        } catch (error) {
+            console.error("Failed to update password:", error);
+            setPasswordError("Failed to update password. Please try again.");
+        }
+    };
+
+    const handleSaveNotifications = async () => {
+        try {
+            const response = await fetch("/api/vendor/profile", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    notification_new_order: notifs.newOrder,
+                    notification_order_status: notifs.orderStatus,
+                    notification_low_stock: notifs.lowStock,
+                    notification_reviews: notifs.reviews,
+                    notification_promotions: notifs.promotions,
+                })
+            });
+            if (response.ok) {
+                setNotifsSaved(true);
+                setTimeout(() => setNotifsSaved(false), 3000);
+            }
+        } catch (error) {
+            console.error("Failed to save notifications:", error);
+        }
     };
 
     const navItems: { icon: React.ElementType; label: Tab }[] = [
@@ -41,6 +182,14 @@ export default function VendorSettingsPage() {
         { icon: Bell, label: "Notifications" },
         { icon: Lock, label: "Security" },
     ];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 max-w-5xl">
@@ -84,7 +233,20 @@ export default function VendorSettingsPage() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="text-sm font-bold text-gray-700 block mb-1.5">Store Name</label>
-                                        <input type="text" value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary transition-all" />
+                                        <input 
+                                            type="text" 
+                                            value={profile.name} 
+                                            onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} 
+                                            disabled={vendorStatus === 'active'}
+                                            className={`w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none transition-all ${
+                                                vendorStatus === 'active' 
+                                                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
+                                                    : 'bg-gray-50 focus:bg-white focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary'
+                                            }`}
+                                        />
+                                        {vendorStatus === 'active' && (
+                                            <p className="text-xs text-amber-600 mt-1">Store name cannot be changed after activation</p>
+                                        )}
                                     </div>
                                     <div>
                                         <label className="text-sm font-bold text-gray-700 block mb-1.5">Store Email</label>
@@ -159,6 +321,10 @@ export default function VendorSettingsPage() {
                                             </button>
                                         </div>
                                     ))}
+                                </div>
+                                <div className="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-100">
+                                    {notifsSaved && <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600"><CheckCircle2 className="w-4 h-4" /> Saved!</span>}
+                                    <button onClick={handleSaveNotifications} className="px-6 py-2.5 bg-virsa-primary text-white rounded-xl text-sm font-bold hover:bg-virsa-primary/90 transition-colors shadow-sm">Save Preferences</button>
                                 </div>
                             </div>
                         )}

@@ -15,6 +15,13 @@ type EarningsData = {
         date: string;
         amount: number;
     }>;
+    breakdown: {
+        product_sales: number;
+        shipping_fees: number;
+        other: number;
+        commission: number;
+        net_earnings: number;
+    };
 };
 
 export default function VendorEarningsPage() {
@@ -29,12 +36,20 @@ export default function VendorEarningsPage() {
         try {
             const response = await fetch("/api/vendor/earnings");
             if (response.ok) {
-                const data = await response.json();
+                const result = await response.json();
+                const data = result.data || result;
                 setEarnings({
-                    totalEarnings: data.data.total_earnings || 0,
-                    pendingSettlement: data.data.pending_settlement || 0,
-                    settledThisMonth: data.data.settled_this_month || 0,
-                    transactions: data.data.transactions || []
+                    totalEarnings: data.total_earnings || 0,
+                    pendingSettlement: data.pending_settlement || 0,
+                    settledThisMonth: data.settled_this_month || 0,
+                    transactions: data.transactions || [],
+                    breakdown: data.breakdown || {
+                        product_sales: 0,
+                        shipping_fees: 0,
+                        other: 0,
+                        commission: 0,
+                        net_earnings: 0,
+                    }
                 });
             }
         } catch (error) {
@@ -139,13 +154,7 @@ export default function VendorEarningsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 text-sm">
-                                {[
-                                    { id: "ORD-4829", desc: "COD Order Sale", type: "credit", status: "Settled", date: "Today", amount: "+ Rs 4,500.00" },
-                                    { id: "ORD-4828", desc: "COD Order Sale", type: "credit", status: "Pending", date: "Today", amount: "+ Rs 2,800.00" },
-                                    { id: "ORD-4825", desc: "COD Order Sale", type: "credit", status: "Settled", date: "Oct 24", amount: "+ Rs 1,200.00" },
-                                    { id: "ORD-4821", desc: "COD Order Sale", type: "credit", status: "Settled", date: "Oct 23", amount: "+ Rs 3,750.00" },
-                                    { id: "REF-992", desc: "Order Refund", type: "debit", status: "Processed", date: "Oct 23", amount: "- Rs 850.00" },
-                                ].map((trx, index) => (
+                                {(earnings?.transactions || []).map((trx, index) => (
                                     <tr key={index} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -154,7 +163,7 @@ export default function VendorEarningsPage() {
                                                     {trx.type === 'credit' ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
                                                 </div>
                                                 <div>
-                                                    <p className="font-bold text-gray-900">{trx.desc}</p>
+                                                    <p className="font-bold text-gray-900">{trx.description}</p>
                                                     <p className="text-xs text-gray-500">{trx.id}</p>
                                                 </div>
                                             </div>
@@ -169,7 +178,7 @@ export default function VendorEarningsPage() {
                                         <td className="px-6 py-4 text-gray-500">{trx.date}</td>
                                         <td className="px-6 py-4 text-right">
                                             <span className={`font-bold ${trx.type === 'credit' ? 'text-emerald-600' : 'text-gray-900'}`}>
-                                                {trx.amount}
+                                                {trx.type === 'credit' ? '+' : '-'} Rs {trx.amount.toLocaleString()}
                                             </span>
                                         </td>
                                     </tr>
@@ -183,21 +192,21 @@ export default function VendorEarningsPage() {
                 <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 flex flex-col">
                     <h2 className="text-lg font-bold text-gray-900 mb-6">Earnings Breakdown</h2>
                     <div className="space-y-6 flex-1">
-                        {[
-                            { label: "Product Sales", amount: "Rs 92,400.00", percentage: "85%", color: "bg-virsa-primary" },
-                            { label: "Shipping Fees", amount: "Rs 12,500.00", percentage: "12%", color: "bg-indigo-500" },
-                            { label: "Other", amount: "Rs 3,250.00", percentage: "3%", color: "bg-orange-500" },
+                        {earnings && [
+                            { label: "Product Sales", amount: earnings.breakdown.product_sales, percentage: 85, color: "bg-virsa-primary" },
+                            { label: "Shipping Fees", amount: earnings.breakdown.shipping_fees, percentage: 12, color: "bg-indigo-500" },
+                            { label: "Other", amount: earnings.breakdown.other, percentage: 3, color: "bg-orange-500" },
                         ].map((item, idx) => (
                             <div key={idx}>
                                 <div className="flex justify-between items-end mb-2">
                                     <div>
                                         <p className="text-sm font-medium text-gray-600">{item.label}</p>
-                                        <p className="text-lg font-bold text-gray-900">{item.amount}</p>
+                                        <p className="text-lg font-bold text-gray-900">Rs {item.amount.toLocaleString()}</p>
                                     </div>
-                                    <span className="text-xs font-bold text-gray-500">{item.percentage}</span>
+                                    <span className="text-xs font-bold text-gray-500">{item.percentage}%</span>
                                 </div>
                                 <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                                    <div className={`h-full ${item.color} rounded-full`} style={{ width: item.percentage }}></div>
+                                    <div className={`h-full ${item.color} rounded-full`} style={{ width: `${item.percentage}%` }}></div>
                                 </div>
                             </div>
                         ))}
@@ -205,11 +214,11 @@ export default function VendorEarningsPage() {
                     <div className="mt-8 pt-6 border-t border-gray-100">
                         <div className="flex justify-between items-center text-sm mb-2 text-gray-600">
                             <span>Platform Commission (5%)</span>
-                            <span>- Rs 5,407.50</span>
+                            <span>- Rs {earnings?.breakdown.commission.toLocaleString() || '0.00'}</span>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-xl flex justify-between items-center mt-4">
                             <span className="font-bold text-gray-700">Net Earnings</span>
-                            <span className="font-black text-virsa-primary text-xl">Rs 102,742.50</span>
+                            <span className="font-black text-virsa-primary text-xl">Rs {earnings?.breakdown.net_earnings.toLocaleString() || '0.00'}</span>
                         </div>
                     </div>
                 </div>

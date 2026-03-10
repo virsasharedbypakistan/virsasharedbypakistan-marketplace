@@ -23,7 +23,7 @@ export async function GET(
       `
       )
       .eq('id', id)
-      .eq('approval_status', 'approved')
+      .eq('status', 'approved')
       .single();
 
     if (error || !vendor) {

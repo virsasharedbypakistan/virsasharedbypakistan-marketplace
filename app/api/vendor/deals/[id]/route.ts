@@ -4,7 +4,7 @@ import { apiSuccess, apiError, requireRole, getVendorForUser } from '@/lib/api-h
 import { mutationRateLimit } from '@/lib/ratelimit';
 import { z } from 'zod';
 
-// ── PUT /api/vendor/deals/[id] — Update deal ────────────────────────
+// ── PATCH /api/vendor/deals/[id] — Update deal ────────────────────────
 
 const updateDealSchema = z.object({
   discount_percentage: z.number().min(1).max(99).optional(),
@@ -13,7 +13,7 @@ const updateDealSchema = z.object({
   is_active: z.boolean().optional(),
 });
 
-export async function PUT(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -76,13 +76,13 @@ export async function PUT(
       .single();
 
     if (error) {
-      console.error('[Vendor Deal PUT] Update error:', error);
+      console.error('[Vendor Deal PATCH] Update error:', error);
       return apiError('Failed to update deal', 500);
     }
 
     return apiSuccess(updated, 'Deal updated successfully');
   } catch (err) {
-    console.error('[Vendor Deal PUT] Exception:', err);
+    console.error('[Vendor Deal PATCH] Exception:', err);
     return apiError('Internal server error', 500);
   }
 }

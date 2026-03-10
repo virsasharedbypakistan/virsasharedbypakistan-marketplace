@@ -55,6 +55,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     const [qty, setQty] = useState(1);
     const [addedToCart, setAddedToCart] = useState(false);
     const [activeTab, setActiveTab] = useState("description");
+    const [selectedImage, setSelectedImage] = useState<string>("");
 
     const wishlisted = isInWishlist(id);
 
@@ -66,6 +67,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 if (res.ok) {
                     const data = await res.json();
                     setProduct(data.data);
+                    // Set initial image when product loads
+                    const images = data.data.images.length > 0 ? data.data.images : [data.data.thumbnail_url || "/product_headphones.png"];
+                    setSelectedImage(images[0]);
                 } else {
                     console.error("Product not found");
                 }
@@ -80,8 +84,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             try {
                 const res = await fetch(`/api/reviews?product_id=${id}`);
                 if (res.ok) {
-                    const data = await res.json();
-                    setReviews(data.data || []);
+                    const result = await res.json();
+                    const reviewList = result.data?.data || result.data || [];
+                    setReviews(Array.isArray(reviewList) ? reviewList : []);
                 }
             } catch (error) {
                 console.error("Failed to fetch reviews:", error);
@@ -129,7 +134,6 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     const effectivePrice = product.sale_price || product.price;
     const hasDiscount = product.sale_price && product.sale_price < product.price;
     const images = product.images.length > 0 ? product.images : [product.thumbnail_url || "/product_headphones.png"];
-    const [selectedImage, setSelectedImage] = useState(images[0]);
 
     return (
         <div className="bg-white min-h-screen pb-20">
