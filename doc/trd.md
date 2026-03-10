@@ -77,7 +77,6 @@ Next.js App Router (Vercel — virsasharedbypakistan.com)
 | Next.js API Routes | REST API layer |
 | TypeScript | Type safety |
 | Zod | Input validation |
-| Prisma ORM | MySQL (financial DB) |
 | Supabase Admin SDK | Server-side DB operations |
 
 ## 3.3 Infrastructure (Confirmed)
@@ -87,7 +86,6 @@ Next.js App Router (Vercel — virsasharedbypakistan.com)
 | Hosting | **Vercel** | Frontend + API routes |
 | Primary DB | **Supabase** | Project ID: `ahdxjvdodferniaqjqbc`, Mumbai `ap-south-1` |
 | Backup DB | **Supabase** | Project ID: `ubeawvyleowhgwndggbe`, Singapore `ap-southeast-1` |
-| Financial DB | **Hostinger MySQL** | Host: `srv1491.hstgr.io`, DB: `u450707463_virsapakistan` |
 | File Storage | **Supabase Storage** | Primary buckets + rclone sync to Backup project |
 | Email | **Resend** | Transactional emails + system alert emails |
 | Rate Limiting | **Upstash Redis** | REST-based, serverless-friendly |
@@ -97,12 +95,12 @@ Next.js App Router (Vercel — virsasharedbypakistan.com)
 
 # 4. Database Architecture
 
-## 4.1 Supabase — Primary DB (Core Transactional Data)
+## 4.1 Supabase — Primary DB (All Application Data)
 
 **Host:** `db.ahdxjvdodferniaqjqbc.supabase.co`
 **PostgreSQL version:** 17.6
 
-Core tables:
+All application tables:
 
 | Table | Purpose |
 |---|---|
@@ -117,6 +115,13 @@ Core tables:
 | `reviews` | Product reviews |
 | `notifications` | In-app notifications |
 | `platform_settings` | Admin-configurable settings |
+| `deals` | Time-limited deals on products |
+| `commission_logs` | Immutable commission records per order |
+| `withdrawal_requests` | Vendor payout requests |
+| `earnings_snapshots` | Daily vendor earning snapshots |
+| `audit_logs` | Admin action trail |
+| `addresses` | User shipping addresses |
+| `vendor_bank_details` | Vendor payment information |
 
 Full schema: see `doc/database-spec.md`
 
@@ -129,22 +134,7 @@ Full schema: see `doc/database-spec.md`
 - Storage buckets mirrored every **6 hours** via rclone
 - Promoted to primary by updating Vercel env vars (zero code change needed)
 
-## 4.3 MySQL — Financial DB (Hostinger)
-
-**Host:** `srv1491.hstgr.io`  
-**Database:** `u450707463_virsapakistan`  
-**ORM:** Prisma  
-
-Financial tables (isolated for audit integrity):
-
-| Table | Purpose |
-|---|---|
-| `commission_logs` | Immutable record per order item |
-| `withdrawal_requests` | Vendor payout requests |
-| `earnings_snapshots` | Daily vendor earning snapshots |
-| `audit_logs` | Admin action trail |
-
-## 4.4 Supabase Storage — File Storage
+## 4.3 Supabase Storage — File Storage
 
 Buckets (Primary project + rclone-synced to Backup):
 
@@ -254,7 +244,8 @@ CommissionAmount = ProductPrice × CommissionRate
 VendorEarning    = ProductPrice − CommissionAmount
 ```
 
-- Commission stored immutably in MySQL `commission_logs` at order time
+- Commission stored in Supabase `order_items` table at order time
+- Commission logs also recorded in `commission_logs` table for audit trail
 - Cannot be modified retroactively
 
 ---
@@ -264,7 +255,7 @@ VendorEarning    = ProductPrice − CommissionAmount
 1. Validate cart items (stock check)
 2. Lock stock (temporary reservation)
 3. Create order + order items in Supabase
-4. Log commission per item in MySQL
+4. Log commission per item in Supabase `commission_logs` table
 5. Deduct stock from `products` table
 6. Send order confirmation email via Resend
 7. Trigger vendor notification
@@ -336,10 +327,9 @@ See `doc/security-and-backup.md` for full specification. Summary:
 |---|---|---|
 | Supabase Primary | Managed daily backup (Pro Plan) | 24h |
 | Supabase Backup project | pg_dump → pg_restore every 4h | 4h |
-| MySQL (Hostinger) | Daily mysqldump | 24h |
 | Supabase Storage | rclone sync to Backup every 6h | 6h |
 
-**Failover:** Update 3 Vercel env vars → redeploy. No code change.
+**Failover:** Update 2 Vercel env vars → redeploy. No code change.
 
 ---
 
@@ -361,7 +351,7 @@ Pre-deploy checklist:
 | Tool | Purpose |
 |---|---|
 | Vercel Analytics | Traffic, performance |
-| Uptime monitoring | `/api/health` endpoint (monitors Primary + Backup + MySQL) |
+| Uptime monitoring | `/api/health` endpoint (monitors Primary + Backup Supabase) |
 | Email alerts (Resend) | DB replication failures, system errors |
 | Supabase Dashboard | Slow query logs, DB usage |
 

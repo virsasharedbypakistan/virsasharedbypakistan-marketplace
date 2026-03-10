@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, ShoppingBag, Truck, CheckCircle2, Clock, X, ChevronDown } from "lucide-react";
 
 type Order = {
@@ -11,15 +11,6 @@ type Order = {
     amount: string;
     status: "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
 };
-
-const allOrders: Order[] = [
-    { id: "ORD-9428", customer: "Ayesha Khan", vendor: "Khyber Crafts", date: "Oct 24, 2023", amount: "Rs 4,500.00", status: "Delivered" },
-    { id: "ORD-9427", customer: "Bilal Ahmed", vendor: "Sindh Heritage", date: "Oct 24, 2023", amount: "Rs 1,250.00", status: "Shipped" },
-    { id: "ORD-9426", customer: "Sara Malik", vendor: "Multan Art House", date: "Oct 23, 2023", amount: "Rs 12,999.00", status: "Processing" },
-    { id: "ORD-9425", customer: "Usman Raza", vendor: "Lahori Bazaar", date: "Oct 23, 2023", amount: "Rs 450.00", status: "Pending" },
-    { id: "ORD-9424", customer: "Fatima Noor", vendor: "Khyber Crafts", date: "Oct 22, 2023", amount: "Rs 8,400.00", status: "Delivered" },
-    { id: "ORD-9423", customer: "Hassan Ali", vendor: "Desert Crafts", date: "Oct 22, 2023", amount: "Rs 3,200.00", status: "Cancelled" },
-];
 
 const STATUS_OPTIONS: Order["status"][] = ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"];
 
@@ -34,12 +25,44 @@ const statusStyle = (s: string) => {
 };
 
 export default function AdminOrdersPage() {
-    const [orders, setOrders] = useState(allOrders);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("All Statuses");
     const [detailModal, setDetailModal] = useState<{ open: boolean; order: Order | null }>({ open: false, order: null });
     const [statusModal, setStatusModal] = useState<{ open: boolean; order: Order | null }>({ open: false, order: null });
     const [newStatus, setNewStatus] = useState<Order["status"]>("Pending");
+
+    useEffect(() => {
+        fetchOrders();
+    }, []);
+
+    const fetchOrders = async () => {
+        try {
+            const res = await fetch("/api/orders");
+            if (res.ok) {
+                const data = await res.json();
+                const formattedOrders = data.data.map((o: any) => ({
+                    id: o.order_number,
+                    customer: o.customer_name,
+                    vendor: o.vendor_name,
+                    date: new Date(o.created_at).toLocaleDateString(),
+                    amount: `Rs ${o.total_amount.toFixed(2)}`,
+                    status: capitalizeStatus(o.status)
+                }));
+                setOrders(formattedOrders);
+            }
+        } catch (error) {
+            console.error("Failed to fetch orders:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const capitalizeStatus = (status: string): Order["status"] => {
+        const capitalized = status.charAt(0).toUpperCase() + status.slice(1);
+        return capitalized as Order["status"];
+    };
 
     const stats = [
         { label: "Total Orders", value: orders.length, icon: ShoppingBag, color: "text-blue-600", bg: "bg-blue-50" },
@@ -59,11 +82,32 @@ export default function AdminOrdersPage() {
         setStatusModal({ open: true, order });
     };
 
-    const handleUpdateStatus = () => {
+    const handleUpdateStatus = async () => {
         if (!statusModal.order) return;
-        setOrders(prev => prev.map(o => o.id === statusModal.order!.id ? { ...o, status: newStatus } : o));
-        setStatusModal({ open: false, order: null });
+        
+        try {
+            const res = await fetch(`/api/orders/${statusModal.order.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: newStatus.toLowerCase() })
+            });
+
+            if (res.ok) {
+                setOrders(prev => prev.map(o => o.id === statusModal.order!.id ? { ...o, status: newStatus } : o));
+                setStatusModal({ open: false, order: null });
+            }
+        } catch (error) {
+            console.error("Failed to update order status:", error);
+        }
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

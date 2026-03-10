@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Package, Truck, CheckCircle, Clock, X, ChevronDown } from "lucide-react";
 
 type Order = {
@@ -11,15 +11,6 @@ type Order = {
     total: number;
     status: "New" | "Processing" | "Shipped" | "Delivered";
 };
-
-const initialOrders: Order[] = [
-    { id: "ORD-94182", date: "Oct 24, 2023", customer: "Ayesha Khan", items: 2, total: 399.98, status: "New" },
-    { id: "ORD-94181", date: "Oct 24, 2023", customer: "Bilal Ahmed", items: 1, total: 199.99, status: "New" },
-    { id: "ORD-94178", date: "Oct 23, 2023", customer: "Sara Malik", items: 3, total: 459.47, status: "Processing" },
-    { id: "ORD-94175", date: "Oct 22, 2023", customer: "Usman Raza", items: 1, total: 599.95, status: "Processing" },
-    { id: "ORD-94170", date: "Oct 21, 2023", customer: "Fatima Noor", items: 2, total: 259.49, status: "Shipped" },
-    { id: "ORD-94165", date: "Oct 20, 2023", customer: "Hassan Ali", items: 1, total: 129.50, status: "Delivered" },
-];
 
 const statusStyle = (s: string) => {
     switch (s) {
@@ -34,14 +25,41 @@ const statusStyle = (s: string) => {
 const statusSteps: Order["status"][] = ["New", "Processing", "Shipped", "Delivered"];
 
 export default function VendorOrdersPage() {
-    const [orders, setOrders] = useState(initialOrders);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("All Orders");
     const [searchQuery, setSearchQuery] = useState("");
     const [statusModal, setStatusModal] = useState<{ open: boolean; order: Order | null }>({ open: false, order: null });
     const [newStatus, setNewStatus] = useState<Order["status"]>("New");
     const [detailModal, setDetailModal] = useState<{ open: boolean; order: Order | null }>({ open: false, order: null });
 
-    const tabs = ["All Orders", "New (2)", "Processing (2)", "Shipped", "Delivered"];
+    useEffect(() => {
+        fetchOrders();
+    }, []);
+
+    const fetchOrders = async () => {
+        try {
+            const response = await fetch("/api/vendor/orders");
+            if (response.ok) {
+                const data = await response.json();
+                const formattedOrders = data.data.map((order: any) => ({
+                    id: order.order_number,
+                    date: new Date(order.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+                    customer: order.customer_name,
+                    items: order.items?.length || 0,
+                    total: order.total_amount,
+                    status: order.status.charAt(0).toUpperCase() + order.status.slice(1) as Order["status"]
+                }));
+                setOrders(formattedOrders);
+            }
+        } catch (error) {
+            console.error("Failed to fetch orders:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const tabs = ["All Orders", `New (${orders.filter(o => o.status === "New").length})`, `Processing (${orders.filter(o => o.status === "Processing").length})`, "Shipped", "Delivered"];
 
     const stats = [
         { label: "New Orders", value: orders.filter(o => o.status === "New").length, icon: Package, color: "text-blue-600", bg: "bg-blue-50" },
@@ -61,11 +79,31 @@ export default function VendorOrdersPage() {
         setStatusModal({ open: true, order });
     };
 
-    const handleUpdateStatus = () => {
+    const handleUpdateStatus = async () => {
         if (!statusModal.order) return;
-        setOrders(prev => prev.map(o => o.id === statusModal.order!.id ? { ...o, status: newStatus } : o));
-        setStatusModal({ open: false, order: null });
+        try {
+            const response = await fetch(`/api/vendor/orders/${statusModal.order.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: newStatus.toLowerCase() })
+            });
+
+            if (response.ok) {
+                setOrders(prev => prev.map(o => o.id === statusModal.order!.id ? { ...o, status: newStatus } : o));
+                setStatusModal({ open: false, order: null });
+            }
+        } catch (error) {
+            console.error("Failed to update order status:", error);
+        }
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

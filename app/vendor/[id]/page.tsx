@@ -77,18 +77,18 @@ function ProductCard({ item, vendorName }: { item: typeof STORE_PRODUCTS[0]; ven
     const { addItem } = useCart();
     const { toggle, isInWishlist } = useWishlist();
     const [added, setAdded] = useState(false);
-    const wishlisted = isInWishlist(item.id);
+    const wishlisted = isInWishlist(item.id.toString());
 
     const handleAdd = (e: React.MouseEvent) => {
         e.preventDefault();
-        addItem({ id: item.id, name: item.name, price: item.price, priceNum: item.priceNum, vendor: vendorName });
+        addItem(item.id.toString());
         setAdded(true);
         setTimeout(() => setAdded(false), 1500);
     };
 
     const handleWishlist = (e: React.MouseEvent) => {
         e.preventDefault();
-        toggle({ id: item.id, name: item.name, price: item.price, priceNum: item.priceNum, vendor: vendorName, badge: item.badge });
+        toggle(item.id.toString());
     };
 
     return (

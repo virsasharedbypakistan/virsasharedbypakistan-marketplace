@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
     Store, Clock, CheckCircle2, XCircle, Eye, ChevronRight, Search,
@@ -289,22 +289,97 @@ function DetailModal({
 
 /* ─── Main Page ─── */
 export default function AdminApplicationsPage() {
-    const [apps, setApps] = useState<Application[]>(INITIAL_APPS);
+    const [apps, setApps] = useState<Application[]>([]);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<AppStatus | "All">("All");
     const [selected, setSelected] = useState<Application | null>(null);
     const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    // Fetch applications from backend
+    useEffect(() => {
+        const fetchApplications = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch("/api/admin/vendors?status=pending");
+                if (!response.ok) throw new Error("Failed to fetch applications");
+                
+                const data = await response.json();
+                
+                // Transform backend data to match Application type
+                const transformedApps: Application[] = data.vendors.map((vendor: any) => ({
+                    id: vendor.id,
+                    storeName: vendor.store_name,
+                    category: vendor.category || "General",
+                    ownerName: vendor.owner_name,
+                    email: vendor.email,
+                    phone: vendor.phone || "N/A",
+                    city: vendor.city || "N/A",
+                    businessType: vendor.business_type || "Individual / Sole Proprietor",
+                    cnic: vendor.cnic || "N/A",
+                    bankName: vendor.bank_details?.bank_name || "N/A",
+                    iban: vendor.bank_details?.iban || "N/A",
+                    description: vendor.description || "No description provided.",
+                    submittedAt: new Date(vendor.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                    }),
+                    status: vendor.status === "pending" ? "Pending" : 
+                            vendor.status === "active" ? "Approved" : 
+                            vendor.status === "rejected" ? "Rejected" : "Pending",
+                    reviewNote: vendor.review_note,
+                    socialLinks: {
+                        website: vendor.website,
+                        instagram: vendor.instagram,
+                    },
+                    docsUploaded: !!vendor.cnic && !!vendor.bank_details?.iban,
+                }));
+                
+                setApps(transformedApps);
+            } catch (error) {
+                console.error("Error fetching applications:", error);
+                showToast("Failed to load applications", "error");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchApplications();
+    }, []);
 
     const showToast = (msg: string, type: "success" | "error" = "success") => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 3500);
     };
 
-    const handleApprove = (id: string) => {
-        const app = apps.find(a => a.id === id);
-        setApps(prev => prev.map(a => a.id === id ? { ...a, status: "Approved", reviewNote: "All documents verified. Store approved and activated." } : a));
-        setSelected(null);
-        showToast(`✅ ${app?.storeName} has been approved and is now live.`);
+    const handleApprove = async (id: string) => {
+        try {
+            const response = await fetch(`/api/admin/vendors/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    status: "active",
+                    review_note: "All documents verified. Store approved and activated."
+                }),
+            });
+
+            if (!response.ok) throw new Error("Failed to approve vendor");
+
+            const app = apps.find(a => a.id === id);
+            setApps(prev => prev.map(a => a.id === id ? { 
+                ...a, 
+                status: "Approved", 
+                reviewNote: "All documents verified. Store approved and activated." 
+            } : a));
+            setSelected(null);
+            showToast(`✅ ${app?.storeName} has been approved and is now live.`);
+        } catch (error) {
+            console.error("Error approving vendor:", error);
+            showToast("Failed to approve vendor", "error");
+        }
     };
 
     const handleStartReview = (id: string) => {
@@ -313,11 +388,31 @@ export default function AdminApplicationsPage() {
         showToast("Marked as Under Review.");
     };
 
-    const handleReject = (id: string, note: string) => {
-        const app = apps.find(a => a.id === id);
-        setApps(prev => prev.map(a => a.id === id ? { ...a, status: "Rejected", reviewNote: note } : a));
-        setSelected(null);
-        showToast(`Application from ${app?.storeName} has been rejected.`, "error");
+    const handleReject = async (id: string, note: string) => {
+        try {
+            const response = await fetch(`/api/admin/vendors/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    status: "rejected",
+                    review_note: note
+                }),
+            });
+
+            if (!response.ok) throw new Error("Failed to reject vendor");
+
+            const app = apps.find(a => a.id === id);
+            setApps(prev => prev.map(a => a.id === id ? { 
+                ...a, 
+                status: "Rejected", 
+                reviewNote: note 
+            } : a));
+            setSelected(null);
+            showToast(`Application from ${app?.storeName} has been rejected.`, "error");
+        } catch (error) {
+            console.error("Error rejecting vendor:", error);
+            showToast("Failed to reject vendor", "error");
+        }
     };
 
     const counts: Record<AppStatus | "All", number> = {
@@ -416,7 +511,12 @@ export default function AdminApplicationsPage() {
             </div>
 
             {/* Applications Cards */}
-            {filtered.length === 0 ? (
+            {loading ? (
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 flex flex-col items-center text-gray-400">
+                    <Loader2 className="w-12 h-12 mb-4 animate-spin text-virsa-primary" />
+                    <p className="font-bold text-gray-600">Loading applications...</p>
+                </div>
+            ) : filtered.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-20 flex flex-col items-center text-gray-400">
                     <Building2 className="w-12 h-12 mb-4 opacity-20" />
                     <p className="font-bold text-gray-600">No applications found</p>

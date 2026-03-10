@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Search, Plus, Zap, Flame, Clock, Trash2, Pencil,
     X, CheckCircle2, Package, TrendingDown, Timer, ToggleLeft, Store
@@ -10,7 +10,7 @@ type DiscountType = "percentage" | "fixed";
 type DealStatus = "active" | "upcoming" | "expired";
 
 type Deal = {
-    id: number;
+    id: string;
     title: string;
     product: string;
     vendor: string;
@@ -24,13 +24,6 @@ type Deal = {
     status: DealStatus;
     sold: number;
 };
-
-const initialDeals: Deal[] = [
-    { id: 1, title: "Flash Sale — Headphones Pro", product: "Premium Wireless Headphones Pro", vendor: "Tech Haven PK", createdBy: "vendor", originalPrice: 34999, dealPrice: 19999, discountType: "percentage", discountValue: 43, startsAt: "2026-03-05T00:00", expiresAt: "2026-03-06T23:59", status: "active", sold: 124 },
-    { id: 2, title: "Platform Deal — Smart Watch", product: "Smart Watch Series 8", vendor: "Electronics Pro", createdBy: "admin", originalPrice: 55000, dealPrice: 34999, discountType: "percentage", discountValue: 36, startsAt: "2026-03-05T00:00", expiresAt: "2026-03-07T23:59", status: "active", sold: 89 },
-    { id: 3, title: "Weekend Deal — Laptop Stand", product: "Aluminium Laptop Stand", vendor: "Home Essentials", createdBy: "vendor", originalPrice: 5500, dealPrice: 3999, discountType: "fixed", discountValue: 1501, startsAt: "2026-03-08T00:00", expiresAt: "2026-03-09T23:59", status: "upcoming", sold: 0 },
-    { id: 4, title: "Clearance — Desk Lamp", product: "LED Desk Lamp with USB", vendor: "Fashion Hub", createdBy: "vendor", originalPrice: 2500, dealPrice: 1750, discountType: "percentage", discountValue: 30, startsAt: "2026-03-01T00:00", expiresAt: "2026-03-04T23:59", status: "expired", sold: 38 },
-];
 
 const ALL_PRODUCTS = ["Premium Wireless Headphones Pro", "Smart Watch Series 8", "Ergonomic Chair", "LED Desk Lamp", "Laptop Stand", "Bluetooth Speaker", "Nike Air Max 270"];
 const ALL_VENDORS = ["Tech Haven PK", "Electronics Pro", "Home Essentials", "Fashion Hub", "Beauty Store", "Sports World PK"];
@@ -59,7 +52,8 @@ type FormData = {
 const emptyForm: FormData = { title: "", product: "", vendor: "", discountType: "percentage", discountValue: "", originalPrice: "", startsAt: "", expiresAt: "" };
 
 export default function AdminDealsPage() {
-    const [deals, setDeals] = useState<Deal[]>(initialDeals);
+    const [deals, setDeals] = useState<Deal[]>([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [filter, setFilter] = useState<"all" | DealStatus>("all");
     const [creatorFilter, setCreatorFilter] = useState<"all" | "admin" | "vendor">("all");
@@ -67,6 +61,48 @@ export default function AdminDealsPage() {
     const [form, setForm] = useState<FormData>(emptyForm);
     const [deleteConfirm, setDeleteConfirm] = useState<Deal | null>(null);
     const [toast, setToast] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetchDeals();
+    }, []);
+
+    const fetchDeals = async () => {
+        try {
+            const res = await fetch("/api/admin/deals");
+            if (res.ok) {
+                const data = await res.json();
+                const formattedDeals = data.data.map((d: any) => ({
+                    id: d.id,
+                    title: d.title,
+                    product: d.product_name,
+                    vendor: d.vendor_name,
+                    createdBy: d.created_by_admin ? "admin" : "vendor",
+                    originalPrice: d.original_price,
+                    dealPrice: d.deal_price,
+                    discountType: d.discount_type,
+                    discountValue: d.discount_value,
+                    startsAt: d.starts_at,
+                    expiresAt: d.expires_at,
+                    status: getDealStatus(d.starts_at, d.expires_at),
+                    sold: 0
+                }));
+                setDeals(formattedDeals);
+            }
+        } catch (error) {
+            console.error("Failed to fetch deals:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getDealStatus = (startsAt: string, expiresAt: string): DealStatus => {
+        const now = new Date();
+        const start = new Date(startsAt);
+        const end = new Date(expiresAt);
+        if (now < start) return "upcoming";
+        if (now > end) return "expired";
+        return "active";
+    };
 
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
@@ -89,23 +125,70 @@ export default function AdminDealsPage() {
         return form.discountType === "percentage" ? Math.max(0, orig - (orig * val) / 100) : Math.max(0, orig - val);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const dealPrice = computeDealPrice();
         if (!form.title || !form.product || !form.vendor || !form.originalPrice || !form.discountValue || !form.startsAt || !form.expiresAt) { showToast("Please fill all required fields."); return; }
         if (dealPrice <= 0) { showToast("Deal price must be greater than 0."); return; }
-        const now = new Date().toISOString();
-        const status: DealStatus = form.startsAt > now ? "upcoming" : form.expiresAt < now ? "expired" : "active";
-        if (modal.editing) {
-            setDeals(prev => prev.map(d => d.id === modal.editing!.id ? { ...d, ...form, discountValue: parseFloat(form.discountValue), originalPrice: parseFloat(form.originalPrice), dealPrice, status } : d));
-            showToast("Deal updated successfully.");
-        } else {
-            setDeals(prev => [...prev, { id: Date.now(), ...form, discountValue: parseFloat(form.discountValue), originalPrice: parseFloat(form.originalPrice), dealPrice, status, sold: 0, createdBy: "admin" as const }]);
-            showToast("Deal created successfully.");
+        
+        try {
+            const dealData = {
+                title: form.title,
+                product_name: form.product,
+                vendor_name: form.vendor,
+                original_price: parseFloat(form.originalPrice),
+                deal_price: dealPrice,
+                discount_type: form.discountType,
+                discount_value: parseFloat(form.discountValue),
+                starts_at: form.startsAt,
+                expires_at: form.expiresAt,
+                created_by_admin: true
+            };
+
+            if (modal.editing) {
+                const res = await fetch(`/api/admin/deals/${modal.editing.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dealData)
+                });
+                
+                if (res.ok) {
+                    await fetchDeals();
+                    showToast("Deal updated successfully.");
+                }
+            } else {
+                const res = await fetch("/api/admin/deals", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(dealData)
+                });
+                
+                if (res.ok) {
+                    await fetchDeals();
+                    showToast("Deal created successfully.");
+                }
+            }
+            setModal({ open: false, editing: null });
+        } catch (error) {
+            console.error("Failed to save deal:", error);
+            showToast("Failed to save deal.");
         }
-        setModal({ open: false, editing: null });
     };
 
-    const handleDelete = (d: Deal) => { setDeals(prev => prev.filter(x => x.id !== d.id)); setDeleteConfirm(null); showToast(`"${d.title}" deleted.`); };
+    const handleDelete = async (d: Deal) => {
+        try {
+            const res = await fetch(`/api/admin/deals/${d.id}`, {
+                method: "DELETE"
+            });
+            
+            if (res.ok) {
+                setDeals(prev => prev.filter(x => x.id !== d.id));
+                setDeleteConfirm(null);
+                showToast(`"${d.title}" deleted.`);
+            }
+        } catch (error) {
+            console.error("Failed to delete deal:", error);
+        }
+    };
 
     const stats = [
         { label: "Total Deals", value: deals.length, icon: Zap, color: "text-violet-600", bg: "bg-violet-50" },
@@ -113,6 +196,14 @@ export default function AdminDealsPage() {
         { label: "Upcoming", value: deals.filter(d => d.status === "upcoming").length, icon: Timer, color: "text-blue-600", bg: "bg-blue-50" },
         { label: "Units Sold via Deals", value: deals.reduce((s, d) => s + d.sold, 0), icon: Package, color: "text-amber-600", bg: "bg-amber-50" },
     ];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

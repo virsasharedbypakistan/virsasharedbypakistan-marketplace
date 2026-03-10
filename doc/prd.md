@@ -28,12 +28,10 @@ Virsa is a web-based multi-vendor ecommerce marketplace that enables multiple in
 | **Backend** | Next.js API Routes |
 | **Primary DB** | Supabase (PostgreSQL) — Project: `virsasharedbypakistan's Project`, Mumbai (ap-south-1) |
 | **Backup DB** | Supabase (PostgreSQL) — Project: `virsa-backup`, Singapore (ap-southeast-1) |
-| **Financial DB** | MySQL — Hostinger (`srv1491.hstgr.io`) |
 | **Auth** | Supabase Auth (JWT) |
 | **File Storage** | Supabase Storage (Primary + mirrored to Backup) |
 | **Email** | Resend API |
 | **Rate Limiting** | Upstash Redis |
-| **ORM** | Prisma (MySQL) |
 | **Validation** | Zod |
 | **Deployment** | Vercel (Frontend + API) |
 
@@ -186,7 +184,8 @@ Virsa is a web-based multi-vendor ecommerce marketplace that enables multiple in
 
 - Commission types: Global Default → Per Category → Per Vendor (priority order)
 - Formula: `VendorEarning = OrderAmount − Commission`
-- Commission recorded immutably at order time in MySQL (`commission_logs`)
+- Commission recorded in Supabase `order_items` table at order time
+- Commission logs stored in `commission_logs` table for audit trail
 
 ## 3.6 Shipping System
 
@@ -255,7 +254,6 @@ Next.js (Vercel) — virsasharedbypakistan.com
 Next.js API Routes
   ├── Supabase (Primary) → Core data (Mumbai)
   │     └── Replicated → Supabase (Backup) — Singapore
-  ├── MySQL (Hostinger) → Financial/commission data
   └── Supabase Storage → Product images, vendor assets
 ```
 
@@ -265,14 +263,11 @@ Next.js API Routes
 
 | Database | Provider | Purpose |
 |---|---|---|
-| Supabase Primary | `ahdxjvdodferniaqjqbc.supabase.co` | Core transactional data |
+| Supabase Primary | `ahdxjvdodferniaqjqbc.supabase.co` | All application data |
 | Supabase Backup | `ubeawvyleowhgwndggbe.supabase.co` | Standby replica (failover) |
-| MySQL | `srv1491.hstgr.io` (Hostinger) | Commission logs, financial records |
 | Supabase Storage | Primary + mirrored to Backup | Product/vendor images, avatars |
 
-Core Supabase tables: `users`, `vendors`, `products`, `orders`, `order_items`, `categories`, `reviews`, `cart_items`, `wishlist_items`, `notifications`, `platform_settings`
-
-MySQL tables: `commission_logs`, `withdrawal_requests`, `earnings_snapshots`, `audit_logs`
+All Supabase tables: `users`, `addresses`, `categories`, `platform_settings`, `vendors`, `vendor_bank_details`, `products`, `cart_items`, `wishlist_items`, `orders`, `order_items`, `reviews`, `notifications`, `deals`, `commission_logs`, `withdrawal_requests`, `earnings_snapshots`, `audit_logs`
 
 ---
 
@@ -304,7 +299,6 @@ Required pages: Privacy Policy, Terms & Conditions, Refund Policy, Seller Agreem
 | Frontend + API | Vercel |
 | Primary DB | Supabase (Mumbai) |
 | Backup DB | Supabase (Singapore) |
-| Financial DB | Hostinger MySQL |
 | Email | Resend |
 | Rate Limiting | Upstash Redis |
 | Storage | Supabase Storage |

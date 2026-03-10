@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Minus, Plus, Trash2, ArrowRight, ShieldCheck, Tag, ShoppingCart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useState } from "react";
 
 export default function CartPage() {
-    const { items, removeItem, updateQty, total, count, clearCart } = useCart();
+    const { items, removeItem, updateQty, total, count, clearCart, loading } = useCart();
     const [promoCode, setPromoCode] = useState("");
     const [promoApplied, setPromoApplied] = useState(false);
 
@@ -58,61 +59,76 @@ export default function CartPage() {
                         </div>
 
                         <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-100">
-                            {items.map((item) => (
-                                <div key={item.id} className="p-6">
-                                    <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Sold by:</span>
-                                        <span className="text-sm font-bold text-virsa-primary">{item.vendor}</span>
-                                    </div>
-
-                                    <div className="flex flex-col md:grid md:grid-cols-12 gap-6 items-start md:items-center">
-                                        <div className="md:col-span-6 flex gap-4 w-full">
-                                            <div className="w-20 h-20 bg-gray-100 rounded-2xl flex-shrink-0 border border-gray-200 flex items-center justify-center text-gray-300">
-                                                <ShoppingCart className="w-8 h-8" strokeWidth={1} />
-                                            </div>
-                                            <div className="flex flex-col justify-center">
-                                                <Link href={`/product/${item.id}`}>
-                                                    <h3 className="font-bold text-gray-900 mb-1 hover:text-virsa-primary transition-colors line-clamp-2">{item.name}</h3>
-                                                </Link>
-                                                <p className="text-sm text-gray-500 mb-2">{item.price}</p>
-                                                <button
-                                                    onClick={() => removeItem(item.id)}
-                                                    className="text-sm font-bold text-red-500 hover:text-red-600 flex items-center gap-1 w-fit group transition-colors"
-                                                >
-                                                    <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" /> Remove
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="md:col-span-2 text-center hidden md:block">
-                                            <span className="font-bold text-gray-900">Rs {item.priceNum.toLocaleString()}</span>
-                                        </div>
-
-                                        <div className="md:col-span-2 flex items-center justify-between w-full md:justify-center">
-                                            <div className="md:hidden font-bold text-gray-900">Rs {item.priceNum.toLocaleString()}</div>
-                                            <div className="flex items-center border border-gray-200 bg-gray-50 rounded-xl p-1 w-28">
-                                                <button
-                                                    onClick={() => updateQty(item.id, item.qty - 1)}
-                                                    className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition-all border border-transparent hover:border-gray-200"
-                                                >
-                                                    <Minus className="w-3 h-3" />
-                                                </button>
-                                                <span className="font-bold text-gray-900 flex-1 text-center text-sm">{item.qty}</span>
-                                                <button
-                                                    onClick={() => updateQty(item.id, item.qty + 1)}
-                                                    className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition-all border border-transparent hover:border-gray-200"
-                                                >
-                                                    <Plus className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="md:col-span-2 text-right hidden md:block">
-                                            <span className="font-black text-gray-900 text-lg">Rs {(item.priceNum * item.qty).toLocaleString()}</span>
-                                        </div>
-                                    </div>
+                            {loading ? (
+                                <div className="p-20 text-center">
+                                    <div className="inline-block w-8 h-8 border-4 border-virsa-primary border-t-transparent rounded-full animate-spin"></div>
                                 </div>
-                            ))}
+                            ) : (
+                                items.map((item) => (
+                                    <div key={item.id} className="p-6">
+                                        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-50">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">Sold by:</span>
+                                            <span className="text-sm font-bold text-virsa-primary">{item.vendor}</span>
+                                        </div>
+
+                                        <div className="flex flex-col md:grid md:grid-cols-12 gap-6 items-start md:items-center">
+                                            <div className="md:col-span-6 flex gap-4 w-full">
+                                                {item.image ? (
+                                                    <div className="w-20 h-20 bg-gray-100 rounded-2xl flex-shrink-0 border border-gray-200 overflow-hidden relative">
+                                                        <Image src={item.image} alt={item.name} fill className="object-cover" />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-20 h-20 bg-gray-100 rounded-2xl flex-shrink-0 border border-gray-200 flex items-center justify-center text-gray-300">
+                                                        <ShoppingCart className="w-8 h-8" strokeWidth={1} />
+                                                    </div>
+                                                )}
+                                                <div className="flex flex-col justify-center">
+                                                    <Link href={`/product/${item.product_id}`}>
+                                                        <h3 className="font-bold text-gray-900 mb-1 hover:text-virsa-primary transition-colors line-clamp-2">{item.name}</h3>
+                                                    </Link>
+                                                    <p className="text-sm text-gray-500 mb-2">{item.price}</p>
+                                                    <button
+                                                        onClick={() => removeItem(item.id)}
+                                                        disabled={loading}
+                                                        className="text-sm font-bold text-red-500 hover:text-red-600 flex items-center gap-1 w-fit group transition-colors disabled:opacity-50"
+                                                    >
+                                                        <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" /> Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-2 text-center hidden md:block">
+                                                <span className="font-bold text-gray-900">Rs {item.priceNum.toLocaleString()}</span>
+                                            </div>
+
+                                            <div className="md:col-span-2 flex items-center justify-between w-full md:justify-center">
+                                                <div className="md:hidden font-bold text-gray-900">Rs {item.priceNum.toLocaleString()}</div>
+                                                <div className="flex items-center border border-gray-200 bg-gray-50 rounded-xl p-1 w-28">
+                                                    <button
+                                                        onClick={() => updateQty(item.id, item.qty - 1)}
+                                                        disabled={loading || item.qty <= 1}
+                                                        className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition-all border border-transparent hover:border-gray-200 disabled:opacity-50"
+                                                    >
+                                                        <Minus className="w-3 h-3" />
+                                                    </button>
+                                                    <span className="font-bold text-gray-900 flex-1 text-center text-sm">{item.qty}</span>
+                                                    <button
+                                                        onClick={() => updateQty(item.id, item.qty + 1)}
+                                                        disabled={loading || item.qty >= item.stock}
+                                                        className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-white hover:shadow-sm rounded-lg transition-all border border-transparent hover:border-gray-200 disabled:opacity-50"
+                                                    >
+                                                        <Plus className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-2 text-right hidden md:block">
+                                                <span className="font-black text-gray-900 text-lg">Rs {(item.priceNum * item.qty).toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
 
                         <div className="mt-6">

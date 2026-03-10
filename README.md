@@ -1,178 +1,223 @@
-# Virsa Marketplace 🛍️
+# Virsa Multi-Vendor Marketplace
 
-A modern Pakistani e-commerce marketplace built with **Next.js 16**, **React 19**, and **Tailwind CSS 4**. Virsa connects customers with local vendors selling authentic Pakistani crafts, textiles, and goods.
+A complete multi-vendor e-commerce platform built with Next.js 16 and Supabase.
 
----
+## 🚀 Quick Start
 
-## ✨ Features
+```bash
+# 1. Install dependencies
+npm install
 
-### 🛒 Customer Portal (`/`)
-- **Homepage** — Hero banner, category grid, featured products, vendor showcase, deals section
-- **Shop / Product Listing** — Grid browse with filter sidebar
-- **Product Detail** — Image gallery, reviews, add-to-cart & wishlist
-- **Vendor Stores** — Public storefront for each vendor (`/vendor/[id]`)
-- **Cart & Checkout** — Multi-step checkout flow
-- **Daily Deals** — Time-sensitive offers
-- **Wishlist & Contact** pages
+# 2. Verify all connections
+npm run verify
 
-### 🧑‍💼 Customer Dashboard (`/dashboard`)
-| Page | Features |
-|------|----------|
-| Overview | Stats cards, recent orders with real product images, Buy Again & Write Review modals |
-| My Orders | Order details modal, package tracking modal, write review modal with star rating, search & filter |
-| Wishlist | Add to cart with toast, delete confirmation modal, out-of-stock overlay |
-| My Reviews | Edit review modal, delete confirmation, live search, ⋮ dropdown menu |
-| Account Settings | Profile form, password update with validation, full address CRUD (add/edit/delete/set-default) |
+# 3. Seed sample data
+npm run seed
 
-### 🏪 Vendor Dashboard (`/vendor/dashboard`)
-| Page | Features |
-|------|----------|
-| Overview | KPI stats, revenue chart, new orders queue with Ship confirmation modal + real product images |
-| Products | Table with real images, Add/Edit/Delete modals, image picker, show/hide toggle, live search |
-| Orders | Tab filtering by status, Update Status modal, Order Details modal, live search |
-| Earnings | COD settlement history, earnings breakdown, revenue summary cards |
-| Settings | 4-tab settings: Store Profile, Payout Details, Notification toggles, Security (password) |
+# 4. Start development
+npm run dev
+```
 
-### 🔐 Admin Dashboard (`/admin/dashboard`)
-| Page | Features |
-|------|----------|
-| Overview | Platform KPIs, revenue/commission chart, vendor approval queue with real logos, Approve/Reject/Review-Docs modals |
-| Vendors | Real vendor images, Approve/Reject for pending, Suspend/Reactivate/Delete modal, view details, live search |
-| Customers | View/Ban/Unban/Delete via dropdown, customer detail modal, live search, success toasts |
-| Orders | Status update modal (all statuses), order detail modal, search + status filter |
-| Earnings | Platform revenue, commission breakdown, vendor payout tracking |
+Visit: http://localhost:3000
 
----
+## 📋 Prerequisites
 
-## 🗂️ Project Structure
+- Node.js 18+
+- `.env.local` configured (see `.env.example`)
+- Supabase projects (Primary + Backup)
+- Upstash Redis account
+- Resend email account
+
+## 🗄️ Database Architecture
+
+### Supabase (PostgreSQL) - 18 Tables
+All application data including:
+- Core: users, products, orders, vendors
+- Financial: commissions, withdrawals, earnings, audit logs
+
+### Redis (Upstash)
+Rate limiting and caching
+
+## 🔑 Test Accounts
+
+After running `npm run seed`, demo accounts are created. Check the console output for credentials or contact your administrator.
+
+## 📦 Available Scripts
+
+```bash
+npm run verify          # Verify complete setup
+npm run test:connections # Test all database connections
+npm run seed            # Seed sample data
+npm run dev             # Start development server
+```
+
+## 🏗️ Project Structure
 
 ```
 virsasharedbypakistan/
 ├── app/
-│   ├── page.tsx                    # Homepage
-│   ├── layout.tsx                  # Root layout
-│   ├── globals.css                 # Global styles
-│   ├── dashboard/                  # Customer dashboard
-│   │   ├── page.tsx                # Overview
-│   │   ├── orders/
-│   │   ├── wishlist/
-│   │   ├── reviews/
-│   │   └── settings/
-│   ├── vendor/
-│   │   ├── [id]/                   # Public vendor store
-│   │   └── dashboard/              # Vendor portal
-│   │       ├── page.tsx
-│   │       ├── products/
-│   │       ├── orders/
-│   │       ├── earnings/
-│   │       └── settings/
-│   ├── admin/
-│   │   └── dashboard/              # Admin portal
-│   │       ├── page.tsx
-│   │       ├── vendors/
-│   │       ├── customers/
-│   │       ├── orders/
-│   │       └── earnings/
-│   ├── product/[id]/               # Product detail
-│   ├── products/                   # Product listing
-│   ├── vendors/                    # Vendor listing
-│   ├── cart/
-│   ├── checkout/
-│   ├── wishlist/
-│   ├── deals/
-│   ├── contact/
-│   └── login/
-├── components/
-│   ├── Providers.tsx               # Context providers wrapper
-│   └── layout/                     # Shared layout components
-├── contexts/
-│   ├── CartContext.tsx             # Global cart state
-│   └── WishlistContext.tsx         # Global wishlist state
-├── public/
-│   ├── virsa-logo.png
-│   └── images/
-│       ├── products/               # product1.jpg, product2.jpg
-│       └── vendors/                # vendor1.png, vendor3.jpg
-└── doc/                            # Project documentation
+│   ├── api/              # 65 API endpoints
+│   ├── admin/            # Admin dashboard
+│   ├── vendor/           # Vendor dashboard
+│   └── dashboard/        # Customer dashboard
+├── lib/
+│   ├── supabase.ts       # Supabase client
+│   ├── prisma.ts         # Prisma client
+│   └── email.ts          # Email service
+├── prisma/
+│   └── schema.prisma     # MySQL schema
+├── scripts/
+│   ├── verify-setup.js   # Setup verification
+│   ├── seed.js           # Database seeding
+│   └── setup-prisma.js   # Prisma setup
+└── doc/                  # Detailed documentation
+    ├── prd.md            # Product requirements
+    ├── trd.md            # Technical design
+    ├── database-spec.md  # Database schema
+    └── api-structure.md  # API documentation
 ```
 
----
+## 📚 Documentation
 
-## 🛠️ Tech Stack
+Detailed specifications in `/doc`:
+- **prd.md** - Product Requirements Document
+- **trd.md** - Technical Requirements Document
+- **database-spec.md** - Complete database schema
+- **api-structure.md** - API endpoint documentation
+- **ui-screens.md** - UI/UX specifications
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| [Next.js](https://nextjs.org) | 16.1.6 | React framework (App Router) |
-| [React](https://react.dev) | 19.2.3 | UI library |
-| [TypeScript](https://www.typescriptlang.org) | ^5 | Type safety |
-| [Tailwind CSS](https://tailwindcss.com) | ^4 | Utility-first styling |
-| [Lucide React](https://lucide.dev) | ^0.575 | Icon library |
+## 🔧 Setup Steps
 
----
+### 1. Environment Configuration
 
-## 🚀 Getting Started
+Copy `.env.example` to `.env.local` and configure:
+- Supabase URLs and keys (Primary + Backup)
+- MySQL connection string
+- Upstash Redis credentials
+- Resend API key
 
-### Prerequisites
-- Node.js 18+ 
-- npm / yarn / pnpm
-
-### Installation
+### 2. Verify Connections
 
 ```bash
-# Clone the repository
-git clone <repo-url>
-cd virsasharedbypakistan
-
-# Install dependencies
-npm install
+npm run verify
 ```
 
-### Development
+This checks:
+- ✓ Supabase Primary connection
+- ✓ Supabase Backup connection
+- ✓ MySQL connection
+- ✓ Redis connection
+- ✓ Email API connection
+- ✓ Prisma migrations
+- ✓ Sample data
+
+### 3. Setup Databases
+
+```bash
+# Setup MySQL and seed all data
+npm run db:setup
+```
+
+This will:
+1. Generate Prisma client
+2. Run MySQL migrations
+3. Create 4 MySQL tables
+4. Seed Supabase with sample data
+5. Replicate to backup database
+
+### 4. Start Development
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+## 🌐 API Endpoints
 
-### Other Scripts
+### Public
+- `GET /api/health` - Health check
+- `GET /api/categories` - List categories
+- `GET /api/products` - List products
+- `GET /api/vendors` - List vendors
+
+### Authentication
+- `POST /api/auth/register` - Customer signup
+- `POST /api/auth/login` - User login
+- `POST /api/auth/vendor-register` - Vendor application
+
+### Customer
+- `GET /api/cart` - Shopping cart
+- `POST /api/orders` - Create order
+- `GET /api/wishlist` - Wishlist
+
+### Vendor
+- `GET /api/vendor/orders` - Vendor orders
+- `GET /api/vendor/earnings` - Earnings dashboard
+- `POST /api/withdrawals` - Request withdrawal
+
+### Admin
+- `GET /api/admin/stats` - Dashboard KPIs
+- `GET /api/admin/vendors` - Manage vendors
+- `GET /api/admin/withdrawals` - Withdrawal queue
+
+See `/doc/api-structure.md` for complete API documentation.
+
+## 🔒 Security Features
+
+- Row-Level Security (RLS) on all Supabase tables
+- Rate limiting (10 req/10s per user)
+- Input validation with Zod
+- JWT authentication
+- Encrypted sensitive data
+- SQL injection prevention
+
+## 🧪 Testing
 
 ```bash
-npm run build    # Production build
-npm run start    # Start production server
-npm run lint     # Run ESLint
+# Test all connections
+npm run test:connections
+
+# Verify complete setup
+npm run verify
+
+# View MySQL data
+npm run prisma:studio
 ```
 
----
+## 🚀 Deployment
 
-## 🔗 Key Routes
+1. Push to GitHub
+2. Deploy to Vercel
+3. Configure environment variables
+4. Run migrations on production databases
+5. Seed initial data
 
-| Route | Description |
-|-------|-------------|
-| `/` | Customer homepage |
-| `/shop` | Browse all products |
-| `/vendor/[id]` | Public vendor storefront |
-| `/dashboard` | Customer account overview |
-| `/dashboard/orders` | Customer order history |
-| `/dashboard/wishlist` | Saved items |
-| `/dashboard/reviews` | My reviews |
-| `/dashboard/settings` | Account settings |
-| `/vendor/dashboard` | Vendor portal home |
-| `/vendor/dashboard/products` | Vendor product management |
-| `/vendor/dashboard/orders` | Vendor order management |
-| `/vendor/dashboard/earnings` | Vendor earnings & payouts |
-| `/vendor/dashboard/settings` | Vendor store settings |
-| `/admin/dashboard` | Admin overview |
-| `/admin/dashboard/vendors` | Vendor management |
-| `/admin/dashboard/customers` | Customer management |
-| `/admin/dashboard/orders` | Global order management |
-| `/login` | Authentication page |
+## 📊 Features
 
----
+- ✅ Multi-vendor marketplace
+- ✅ Product catalog with categories
+- ✅ Shopping cart & wishlist
+- ✅ Order management (COD)
+- ✅ Vendor earnings & withdrawals
+- ✅ Admin dashboard
+- ✅ Email notifications
+- ✅ Product reviews
+- ✅ Deals & promotions
+- ✅ Backup database replication
 
-## 📝 Notes
+## 🛠️ Tech Stack
 
-- All dashboard CRUD operations are currently **UI-only** (no backend). State is managed locally with React `useState`.
-- Product and vendor images are served from `public/images/`.
-- Cart and wishlist state is managed globally via React Context (`CartContext`, `WishlistContext`).
-- The app uses Next.js **App Router** with `"use client"` directives for interactive pages.
+- **Frontend**: Next.js 16, React 19, Tailwind CSS
+- **Backend**: Next.js API Routes
+- **Database**: Supabase (PostgreSQL), MySQL
+- **Cache**: Upstash Redis
+- **Email**: Resend
+- **ORM**: Prisma
+- **Auth**: Supabase Auth
+
+## 📞 Support
+
+For detailed documentation, see `/doc` folder.
+
+## 📄 License
+
+Private - All rights reserved

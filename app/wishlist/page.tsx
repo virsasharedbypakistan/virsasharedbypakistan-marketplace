@@ -6,7 +6,7 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 
 export default function WishlistPage() {
-    const { items, remove, clear } = useWishlist();
+    const { items, remove } = useWishlist();
     const { addItem } = useCart();
 
     if (items.length === 0) {
@@ -29,16 +29,9 @@ export default function WishlistPage() {
                     <h1 className="text-3xl font-black text-gray-900 tracking-tight">My Wishlist</h1>
                     <p className="text-gray-500 mt-1 text-sm">{items.length} saved items</p>
                 </div>
-                <button
-                    onClick={clear}
-                    className="text-sm font-bold text-red-500 hover:text-red-600 transition-colors flex items-center gap-2 px-4 py-2 rounded-xl border border-red-100 bg-red-50 hover:bg-red-100"
-                >
-                    <Trash2 className="w-4 h-4" /> Clear All
-                </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {items.map((item) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">{items.map((item) => (
                     <div key={item.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group flex flex-col overflow-hidden">
                         <div className="relative aspect-square bg-gradient-to-br from-gray-100 to-gray-50 flex items-center justify-center">
                             <ShoppingCart className="w-16 h-16 text-gray-200" strokeWidth={1} />
@@ -69,7 +62,7 @@ export default function WishlistPage() {
 
                             <button
                                 onClick={() => {
-                                    addItem({ id: item.id, name: item.name, price: item.price, priceNum: item.priceNum, vendor: item.vendor });
+                                    addItem(item.product_id);
                                     remove(item.id);
                                 }}
                                 className="w-full py-2.5 bg-virsa-primary text-white rounded-xl text-sm font-bold hover:bg-virsa-dark transition-colors flex items-center justify-center gap-2"

@@ -1,6 +1,57 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Download, TrendingUp, TrendingDown, DollarSign, Calendar, Filter } from "lucide-react";
 
+type EarningsData = {
+    totalEarnings: number;
+    pendingSettlement: number;
+    settledThisMonth: number;
+    transactions: Array<{
+        id: string;
+        description: string;
+        type: "credit" | "debit";
+        status: string;
+        date: string;
+        amount: number;
+    }>;
+};
+
 export default function VendorEarningsPage() {
+    const [earnings, setEarnings] = useState<EarningsData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchEarnings();
+    }, []);
+
+    const fetchEarnings = async () => {
+        try {
+            const response = await fetch("/api/vendor/earnings");
+            if (response.ok) {
+                const data = await response.json();
+                setEarnings({
+                    totalEarnings: data.data.total_earnings || 0,
+                    pendingSettlement: data.data.pending_settlement || 0,
+                    settledThisMonth: data.data.settled_this_month || 0,
+                    transactions: data.data.transactions || []
+                });
+            }
+        } catch (error) {
+            console.error("Failed to fetch earnings:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -34,7 +85,7 @@ export default function VendorEarningsPage() {
                     </div>
                     <div>
                         <p className="text-sm font-medium text-gray-500 mb-1">COD Collected (Pending Settlement)</p>
-                        <h3 className="text-3xl font-black text-gray-900 tracking-tight">Rs 45,250.00</h3>
+                        <h3 className="text-3xl font-black text-gray-900 tracking-tight">Rs {earnings?.pendingSettlement.toLocaleString() || "0.00"}</h3>
                     </div>
                 </div>
 
@@ -46,7 +97,7 @@ export default function VendorEarningsPage() {
                     </div>
                     <div>
                         <p className="text-sm font-medium text-gray-500 mb-1">Settled This Month</p>
-                        <h3 className="text-3xl font-black text-gray-900 tracking-tight">Rs 32,800.00</h3>
+                        <h3 className="text-3xl font-black text-gray-900 tracking-tight">Rs {earnings?.settledThisMonth.toLocaleString() || "0.00"}</h3>
                     </div>
                 </div>
 
@@ -62,7 +113,7 @@ export default function VendorEarningsPage() {
                     </div>
                     <div className="relative z-10">
                         <p className="text-sm font-medium text-white/80 mb-1">Total Lifetime Earnings</p>
-                        <h3 className="text-3xl font-black tracking-tight">Rs 845,900.00</h3>
+                        <h3 className="text-3xl font-black tracking-tight">Rs {earnings?.totalEarnings.toLocaleString() || "0.00"}</h3>
                     </div>
                 </div>
             </div>

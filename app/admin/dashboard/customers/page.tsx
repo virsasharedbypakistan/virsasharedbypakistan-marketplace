@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, MoreHorizontal, Users, DollarSign, ShoppingBag, Mail, X, Eye, Ban, CheckCircle2, Trash2 } from "lucide-react";
 
 type Customer = {
-    id: number;
+    id: string;
     name: string;
     email: string;
     status: "Active" | "Inactive" | "Banned";
@@ -13,16 +13,6 @@ type Customer = {
     lastActive: string;
     initials: string;
 };
-
-const initialCustomers: Customer[] = [
-    { id: 1, name: "Ayesha Khan", email: "ayesha@example.com", status: "Active", orders: 12, spent: 4800, lastActive: "Today", initials: "AK" },
-    { id: 2, name: "Bilal Ahmed", email: "bilal@example.com", status: "Active", orders: 7, spent: 2100, lastActive: "Today", initials: "BA" },
-    { id: 3, name: "Sara Malik", email: "sara@example.com", status: "Active", orders: 21, spent: 9450, lastActive: "2 days ago", initials: "SM" },
-    { id: 4, name: "Usman Raza", email: "usman@example.com", status: "Inactive", orders: 3, spent: 750, lastActive: "15 days ago", initials: "UR" },
-    { id: 5, name: "Fatima Noor", email: "fatima@example.com", status: "Active", orders: 9, spent: 3200, lastActive: "3 days ago", initials: "FN" },
-    { id: 6, name: "Hassan Ali", email: "hassan@example.com", status: "Active", orders: 5, spent: 1850, lastActive: "5 days ago", initials: "HA" },
-    { id: 7, name: "Zainab Sheikh", email: "zainab@example.com", status: "Banned", orders: 1, spent: 200, lastActive: "30 days ago", initials: "ZS" },
-];
 
 const statusStyle = (s: string) => {
     switch (s) {
@@ -34,37 +24,114 @@ const statusStyle = (s: string) => {
 };
 
 export default function AdminCustomersPage() {
-    const [customers, setCustomers] = useState(initialCustomers);
+    const [customers, setCustomers] = useState<Customer[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
-    const [menuOpen, setMenuOpen] = useState<number | null>(null);
+    const [menuOpen, setMenuOpen] = useState<string | null>(null);
     const [viewModal, setViewModal] = useState<{ open: boolean; customer: Customer | null }>({ open: false, customer: null });
     const [banConfirm, setBanConfirm] = useState<{ open: boolean; customer: Customer | null }>({ open: false, customer: null });
-    const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [actionDone, setActionDone] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetchCustomers();
+    }, []);
+
+    const fetchCustomers = async () => {
+        try {
+            const res = await fetch("/api/admin/users?role=customer");
+            if (res.ok) {
+                const data = await res.json();
+                const formattedCustomers = data.data.map((c: any) => ({
+                    id: c.id,
+                    name: c.full_name,
+                    email: c.email,
+                    status: c.status === "active" ? "Active" : c.status === "banned" ? "Banned" : "Inactive",
+                    orders: c.order_count || 0,
+                    spent: c.total_spent || 0,
+                    lastActive: getTimeAgo(c.last_login_at),
+                    initials: getInitials(c.full_name)
+                }));
+                setCustomers(formattedCustomers);
+            }
+        } catch (error) {
+            console.error("Failed to fetch customers:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getInitials = (name: string) => {
+        return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+    };
+
+    const getTimeAgo = (dateString: string | null) => {
+        if (!dateString) return "Never";
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays === 0) return "Today";
+        if (diffDays === 1) return "Yesterday";
+        if (diffDays < 7) return `${diffDays} days ago`;
+        return `${Math.floor(diffDays / 7)} weeks ago`;
+    };
 
     const filtered = customers.filter(c =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const toggleBan = (id: number) => {
-        setCustomers(prev => prev.map(c => c.id === id ? { ...c, status: c.status === "Banned" ? "Active" : "Banned" } : c));
+    const toggleBan = async (id: string) => {
         const c = customers.find(c => c.id === id);
-        setActionDone(c?.status === "Banned" ? `${c.name} has been unbanned.` : `${c?.name} has been banned.`);
-        setBanConfirm({ open: false, customer: null });
-        setMenuOpen(null);
-        setTimeout(() => setActionDone(null), 3000);
+        const newStatus = c?.status === "Banned" ? "active" : "banned";
+        
+        try {
+            const res = await fetch(`/api/admin/users/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (res.ok) {
+                setCustomers(prev => prev.map(c => c.id === id ? { ...c, status: c.status === "Banned" ? "Active" : "Banned" } : c));
+                setActionDone(c?.status === "Banned" ? `${c.name} has been unbanned.` : `${c?.name} has been banned.`);
+                setBanConfirm({ open: false, customer: null });
+                setMenuOpen(null);
+                setTimeout(() => setActionDone(null), 3000);
+            }
+        } catch (error) {
+            console.error("Failed to update customer status:", error);
+        }
     };
 
-    const handleDelete = (id: number) => {
-        const c = customers.find(c => c.id === id);
-        setCustomers(prev => prev.filter(c => c.id !== id));
-        setDeleteConfirm(null);
-        setActionDone(`${c?.name}'s account has been deleted.`);
-        setTimeout(() => setActionDone(null), 3000);
+    const handleDelete = async (id: string) => {
+        try {
+            const res = await fetch(`/api/admin/users/${id}`, {
+                method: "DELETE"
+            });
+
+            if (res.ok) {
+                const c = customers.find(c => c.id === id);
+                setCustomers(prev => prev.filter(c => c.id !== id));
+                setDeleteConfirm(null);
+                setActionDone(`${c?.name}'s account has been deleted.`);
+                setTimeout(() => setActionDone(null), 3000);
+            }
+        } catch (error) {
+            console.error("Failed to delete customer:", error);
+        }
     };
 
     const customerToDelete = customers.find(c => c.id === deleteConfirm);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6" onClick={() => setMenuOpen(null)}>

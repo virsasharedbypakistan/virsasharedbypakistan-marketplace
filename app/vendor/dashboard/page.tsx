@@ -1,38 +1,93 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DollarSign, Package, ShoppingBag, TrendingUp, Users, X, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 
 type PendingOrder = { id: string; customer: string; product: string; amount: number; image: string };
 
-const pendingOrders: PendingOrder[] = [
-    { id: "ORD-94182", customer: "Ayesha Khan", product: "Heritage Embroidered Shawl", amount: 199.99, image: "/images/products/product1.jpg" },
-    { id: "ORD-94181", customer: "Bilal Ahmed", product: "Hand-Painted Pottery Set", amount: 399.98, image: "/images/products/product2.jpg" },
-    { id: "ORD-94178", customer: "Sara Malik", product: "Heritage Embroidered Shawl", amount: 129.50, image: "/images/products/product1.jpg" },
-    { id: "ORD-94175", customer: "Usman Raza", product: "Hand-Painted Pottery Set", amount: 599.95, image: "/images/products/product2.jpg" },
-    { id: "ORD-94170", customer: "Fatima Noor", product: "Heritage Embroidered Shawl", amount: 259.49, image: "/images/products/product1.jpg" },
-];
-
-const stats = [
-    { name: "Total Revenue", value: "Rs 12,450.00", icon: DollarSign, trend: "+12.5%", color: "text-emerald-600", bg: "bg-emerald-50" },
-    { name: "Active Products", value: "145", icon: Package, trend: "+3", color: "text-blue-600", bg: "bg-blue-50" },
-    { name: "Total Orders", value: "842", icon: ShoppingBag, trend: "+24.0%", color: "text-indigo-600", bg: "bg-indigo-50" },
-    { name: "Store Views", value: "14.2k", icon: Users, trend: "+18.2%", color: "text-amber-600", bg: "bg-amber-50" },
-];
+type Stats = {
+    totalRevenue: number;
+    activeProducts: number;
+    totalOrders: number;
+    storeViews: number;
+};
 
 export default function VendorDashboardPage() {
-    const [orders, setOrders] = useState(pendingOrders);
+    const [orders, setOrders] = useState<PendingOrder[]>([]);
+    const [stats, setStats] = useState<Stats | null>(null);
+    const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [confirmShip, setConfirmShip] = useState<PendingOrder | null>(null);
     const [doneToast, setDoneToast] = useState<string | null>(null);
 
-    const handleShip = (order: PendingOrder) => {
-        setOrders(prev => prev.filter(o => o.id !== order.id));
-        setConfirmShip(null);
-        setDoneToast(`Order ${order.id} marked as shipped!`);
-        setTimeout(() => setDoneToast(null), 3000);
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
+
+    const fetchDashboardData = async () => {
+        try {
+            const [statsRes, ordersRes] = await Promise.all([
+                fetch("/api/vendor/stats"),
+                fetch("/api/vendor/orders?status=pending&limit=5")
+            ]);
+
+            if (statsRes.ok) {
+                const statsData = await statsRes.json();
+                setStats(statsData.data);
+            }
+
+            if (ordersRes.ok) {
+                const ordersData = await ordersRes.json();
+                const formattedOrders = ordersData.data.map((order: any) => ({
+                    id: order.order_number,
+                    customer: order.customer_name,
+                    product: order.items?.[0]?.product_name || "Order",
+                    amount: order.total_amount,
+                    image: order.items?.[0]?.product_image || "/images/products/product1.jpg"
+                }));
+                setOrders(formattedOrders);
+            }
+        } catch (error) {
+            console.error("Failed to fetch dashboard data:", error);
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const handleShip = async (order: PendingOrder) => {
+        try {
+            const response = await fetch(`/api/vendor/orders/${order.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "shipped" })
+            });
+
+            if (response.ok) {
+                setOrders(prev => prev.filter(o => o.id !== order.id));
+                setConfirmShip(null);
+                setDoneToast(`Order ${order.id} marked as shipped!`);
+                setTimeout(() => setDoneToast(null), 3000);
+            }
+        } catch (error) {
+            console.error("Failed to update order:", error);
+        }
+    };
+
+    const statsDisplay = [
+        { name: "Total Revenue", value: stats ? `Rs ${stats.totalRevenue.toLocaleString()}` : "...", icon: DollarSign, trend: "+12.5%", color: "text-emerald-600", bg: "bg-emerald-50" },
+        { name: "Active Products", value: stats ? String(stats.activeProducts) : "...", icon: Package, trend: "+3", color: "text-blue-600", bg: "bg-blue-50" },
+        { name: "Total Orders", value: stats ? String(stats.totalOrders) : "...", icon: ShoppingBag, trend: "+24.0%", color: "text-indigo-600", bg: "bg-indigo-50" },
+        { name: "Store Views", value: stats ? `${(stats.storeViews / 1000).toFixed(1)}k` : "...", icon: Users, trend: "+18.2%", color: "text-amber-600", bg: "bg-amber-50" },
+    ];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8">
@@ -43,7 +98,7 @@ export default function VendorDashboardPage() {
 
             {/* Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {stats.map((stat) => (
+                {statsDisplay.map((stat) => (
                     <div key={stat.name} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 relative overflow-hidden group hover:border-virsa-primary/30 transition-colors">
                         <stat.icon className="absolute -right-6 -bottom-6 w-24 h-24 text-gray-50 opacity-50 group-hover:scale-110 transition-transform duration-500" />
                         <div className={`w-12 h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4 relative z-10`}>

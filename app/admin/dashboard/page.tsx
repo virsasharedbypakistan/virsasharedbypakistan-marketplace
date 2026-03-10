@@ -1,47 +1,129 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ArrowDownRight, Users, Store, LineChart, Activity, ShoppingBag, ShieldCheck, Clock, X, CheckCircle2 } from "lucide-react";
 import Image from "next/image";
 
-type PendingVendor = { id: number; name: string; email: string; appliedAgo: string; logo: string };
+type PendingVendor = { id: string; name: string; email: string; appliedAgo: string; logo: string };
 
-const initialPendingVendors: PendingVendor[] = [
-    { id: 1, name: "Global Tech Electronics", email: "info@globaltech.pk", appliedAgo: "2 hours ago", logo: "/images/vendors/vendor1.png" },
-    { id: 2, name: "Fresh Organics Depot", email: "hello@freshorganics.pk", appliedAgo: "4 hours ago", logo: "/images/vendors/vendor3.jpg" },
-    { id: 3, name: "Artisan Wood Works", email: "art@woodworks.pk", appliedAgo: "Yesterday", logo: "/images/vendors/vendor1.png" },
-];
-
-const kpis = [
-    { title: "Total Revenue", value: "Rs 124,500.00", icon: LineChart, trend: "up", percent: "12.5%", bg: "bg-emerald-500", text: "text-white" },
-    { title: "Active Vendors", value: "342", icon: Store, trend: "up", percent: "4.2%", bg: "bg-white", border: "border border-[#E2E8F0]" },
-    { title: "Total Customers", value: "45,210", icon: Users, trend: "up", percent: "8.1%", bg: "bg-white", border: "border border-[#E2E8F0]" },
-    { title: "Total Orders", value: "12,482", icon: ShoppingBag, trend: "down", percent: "1.2%", bg: "bg-white", border: "border border-[#E2E8F0]" },
-];
+type Stats = {
+    totalRevenue: number;
+    activeVendors: number;
+    totalCustomers: number;
+    totalOrders: number;
+};
 
 export default function AdminDashboardPage() {
-    const [pendingVendors, setPendingVendors] = useState(initialPendingVendors);
+    const [pendingVendors, setPendingVendors] = useState<PendingVendor[]>([]);
+    const [stats, setStats] = useState<Stats | null>(null);
+    const [loading, setLoading] = useState(true);
     const [approveConfirm, setApproveConfirm] = useState<PendingVendor | null>(null);
     const [rejectConfirm, setRejectConfirm] = useState<PendingVendor | null>(null);
     const [docsModal, setDocsModal] = useState<PendingVendor | null>(null);
     const [toast, setToast] = useState<string | null>(null);
 
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
+
+    const fetchDashboardData = async () => {
+        try {
+            const [statsRes, vendorsRes] = await Promise.all([
+                fetch("/api/admin/stats"),
+                fetch("/api/admin/vendors?status=pending&limit=5")
+            ]);
+
+            if (statsRes.ok) {
+                const statsData = await statsRes.json();
+                setStats(statsData.data);
+            }
+
+            if (vendorsRes.ok) {
+                const vendorsData = await vendorsRes.json();
+                const formattedVendors = vendorsData.data.map((v: any) => ({
+                    id: v.id,
+                    name: v.store_name,
+                    email: v.email,
+                    appliedAgo: getTimeAgo(v.created_at),
+                    logo: "/images/vendors/vendor1.png"
+                }));
+                setPendingVendors(formattedVendors);
+            }
+        } catch (error) {
+            console.error("Failed to fetch dashboard data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getTimeAgo = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+        if (diffHours < 1) return "Just now";
+        if (diffHours < 24) return `${diffHours} hours ago`;
+        if (diffDays === 1) return "Yesterday";
+        return `${diffDays} days ago`;
+    };
+
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
-    const handleApprove = (id: number) => {
-        const v = pendingVendors.find(v => v.id === id);
-        setPendingVendors(prev => prev.filter(v => v.id !== id));
-        setApproveConfirm(null);
-        showToast(`${v?.name} has been approved!`);
+    const handleApprove = async (id: string) => {
+        try {
+            const res = await fetch(`/api/admin/vendors/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "active" })
+            });
+
+            if (res.ok) {
+                const v = pendingVendors.find(v => v.id === id);
+                setPendingVendors(prev => prev.filter(v => v.id !== id));
+                setApproveConfirm(null);
+                showToast(`${v?.name} has been approved!`);
+            }
+        } catch (error) {
+            console.error("Failed to approve vendor:", error);
+        }
     };
 
-    const handleReject = (id: number) => {
-        const v = pendingVendors.find(v => v.id === id);
-        setPendingVendors(prev => prev.filter(v => v.id !== id));
-        setRejectConfirm(null);
-        showToast(`${v?.name} has been rejected.`);
+    const handleReject = async (id: string) => {
+        try {
+            const res = await fetch(`/api/admin/vendors/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "rejected" })
+            });
+
+            if (res.ok) {
+                const v = pendingVendors.find(v => v.id === id);
+                setPendingVendors(prev => prev.filter(v => v.id !== id));
+                setRejectConfirm(null);
+                showToast(`${v?.name} has been rejected.`);
+            }
+        } catch (error) {
+            console.error("Failed to reject vendor:", error);
+        }
     };
+
+    const kpis = [
+        { title: "Total Revenue", value: stats ? `Rs ${stats.totalRevenue.toLocaleString()}` : "...", icon: LineChart, trend: "up", percent: "12.5%", bg: "bg-emerald-500", text: "text-white" },
+        { title: "Active Vendors", value: stats ? String(stats.activeVendors) : "...", icon: Store, trend: "up", percent: "4.2%", bg: "bg-white", border: "border border-[#E2E8F0]" },
+        { title: "Total Customers", value: stats ? String(stats.totalCustomers) : "...", icon: Users, trend: "up", percent: "8.1%", bg: "bg-white", border: "border border-[#E2E8F0]" },
+        { title: "Total Orders", value: stats ? String(stats.totalOrders) : "...", icon: ShoppingBag, trend: "down", percent: "1.2%", bg: "bg-white", border: "border border-[#E2E8F0]" },
+    ];
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

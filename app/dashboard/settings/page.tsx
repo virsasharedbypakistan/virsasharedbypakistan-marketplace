@@ -1,39 +1,94 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Mail, Phone, MapPin, Lock, Camera, Plus, CheckCircle2, Trash2, X, Pencil } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Address = {
-    id: number;
+    id: string;
     label: string;
-    line1: string;
-    line2: string;
-    isDefault: boolean;
+    street_address: string;
+    city: string;
+    province: string;
+    postal_code: string;
+    country: string;
+    is_default: boolean;
 };
 
 export default function CustomerSettingsPage() {
-    const [profileForm, setProfileForm] = useState({ firstName: "Adnan", lastName: "Khan", email: "adnan@example.com", phone: "+92 300 1234567" });
+    const { user } = useAuth();
+    const [loading, setLoading] = useState(true);
+    const [profileForm, setProfileForm] = useState({ firstName: "", lastName: "", email: "", phone: "" });
     const [profileSaved, setProfileSaved] = useState(false);
 
     const [passwordForm, setPasswordForm] = useState({ current: "", newPw: "", confirm: "" });
     const [passwordSaved, setPasswordSaved] = useState(false);
     const [passwordError, setPasswordError] = useState("");
 
-    const [addresses, setAddresses] = useState<Address[]>([
-        { id: 1, label: "Home", line1: "123 Garden Town", line2: "Lahore, Punjab, Pakistan", isDefault: true },
-        { id: 2, label: "Office", line1: "456 MM Alam Road, Suite 3", line2: "Lahore, Punjab, Pakistan", isDefault: false },
-    ]);
+    const [addresses, setAddresses] = useState<Address[]>([]);
 
     const [addressModal, setAddressModal] = useState<{ open: boolean; address: Address | null }>({ open: false, address: null });
-    const [addressForm, setAddressForm] = useState({ label: "", line1: "", line2: "" });
-    const [deleteAddressConfirm, setDeleteAddressConfirm] = useState<number | null>(null);
+    const [addressForm, setAddressForm] = useState({ label: "", street_address: "", city: "", province: "", postal_code: "", country: "Pakistan" });
+    const [deleteAddressConfirm, setDeleteAddressConfirm] = useState<string | null>(null);
 
-    const handleSaveProfile = () => {
-        setProfileSaved(true);
-        setTimeout(() => setProfileSaved(false), 3000);
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                // Fetch user profile
+                const profileRes = await fetch("/api/users/profile");
+                if (profileRes.ok) {
+                    const data = await profileRes.json();
+                    const profile = data.data;
+                    setProfileForm({
+                        firstName: profile.full_name?.split(" ")[0] || "",
+                        lastName: profile.full_name?.split(" ").slice(1).join(" ") || "",
+                        email: profile.email || "",
+                        phone: profile.phone || "",
+                    });
+                }
+
+                // Fetch addresses
+                const addressRes = await fetch("/api/users/addresses");
+                if (addressRes.ok) {
+                    const data = await addressRes.json();
+                    setAddresses(data.data || []);
+                }
+            } catch (error) {
+                console.error("Failed to fetch user data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (user) {
+            fetchUserData();
+        }
+    }, [user]);
+
+    const handleSaveProfile = async () => {
+        try {
+            const res = await fetch("/api/users/profile", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    full_name: `${profileForm.firstName} ${profileForm.lastName}`.trim(),
+                    phone: profileForm.phone,
+                }),
+            });
+
+            if (res.ok) {
+                setProfileSaved(true);
+                setTimeout(() => setProfileSaved(false), 3000);
+            } else {
+                alert("Failed to update profile");
+            }
+        } catch (error) {
+            console.error("Failed to update profile:", error);
+            alert("Failed to update profile");
+        }
     };
 
-    const handleSavePassword = () => {
+    const handleSavePassword = async () => {
         if (!passwordForm.current || !passwordForm.newPw || !passwordForm.confirm) {
             setPasswordError("Please fill in all fields.");
             return;
@@ -46,54 +101,125 @@ export default function CustomerSettingsPage() {
             setPasswordError("Password must be at least 8 characters.");
             return;
         }
-        setPasswordError("");
-        setPasswordSaved(true);
-        setPasswordForm({ current: "", newPw: "", confirm: "" });
-        setTimeout(() => setPasswordSaved(false), 3000);
+
+        try {
+            const res = await fetch("/api/users/password", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    current_password: passwordForm.current,
+                    new_password: passwordForm.newPw,
+                }),
+            });
+
+            if (res.ok) {
+                setPasswordError("");
+                setPasswordSaved(true);
+                setPasswordForm({ current: "", newPw: "", confirm: "" });
+                setTimeout(() => setPasswordSaved(false), 3000);
+            } else {
+                const error = await res.json();
+                setPasswordError(error.error || "Failed to update password");
+            }
+        } catch (error) {
+            console.error("Failed to update password:", error);
+            setPasswordError("Failed to update password");
+        }
     };
 
     const openAddAddress = () => {
-        setAddressForm({ label: "", line1: "", line2: "" });
+        setAddressForm({ label: "", street_address: "", city: "", province: "", postal_code: "", country: "Pakistan" });
         setAddressModal({ open: true, address: null });
     };
 
     const openEditAddress = (address: Address) => {
-        setAddressForm({ label: address.label, line1: address.line1, line2: address.line2 });
+        setAddressForm({
+            label: address.label,
+            street_address: address.street_address,
+            city: address.city,
+            province: address.province,
+            postal_code: address.postal_code,
+            country: address.country,
+        });
         setAddressModal({ open: true, address });
     };
 
-    const handleSaveAddress = () => {
-        if (!addressForm.label.trim() || !addressForm.line1.trim()) return;
-        if (addressModal.address) {
-            // Edit
-            setAddresses(prev => prev.map(a => a.id === addressModal.address!.id
-                ? { ...a, label: addressForm.label, line1: addressForm.line1, line2: addressForm.line2 }
-                : a
-            ));
-        } else {
-            // Add
-            const newId = Date.now();
-            setAddresses(prev => [...prev, { id: newId, label: addressForm.label, line1: addressForm.line1, line2: addressForm.line2, isDefault: prev.length === 0 }]);
-        }
-        setAddressModal({ open: false, address: null });
-    };
+    const handleSaveAddress = async () => {
+        if (!addressForm.label.trim() || !addressForm.street_address.trim()) return;
 
-    const handleSetDefault = (id: number) => {
-        setAddresses(prev => prev.map(a => ({ ...a, isDefault: a.id === id })));
-    };
+        try {
+            if (addressModal.address) {
+                // Edit
+                const res = await fetch(`/api/users/addresses/${addressModal.address.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(addressForm),
+                });
 
-    const handleDeleteAddress = (id: number) => {
-        setAddresses(prev => {
-            const remaining = prev.filter(a => a.id !== id);
-            if (remaining.length > 0 && !remaining.some(a => a.isDefault)) {
-                remaining[0].isDefault = true;
+                if (res.ok) {
+                    const data = await res.json();
+                    setAddresses(prev => prev.map(a => a.id === addressModal.address!.id ? data.data : a));
+                }
+            } else {
+                // Add
+                const res = await fetch("/api/users/addresses", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(addressForm),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setAddresses(prev => [...prev, data.data]);
+                }
             }
-            return remaining;
-        });
+            setAddressModal({ open: false, address: null });
+        } catch (error) {
+            console.error("Failed to save address:", error);
+            alert("Failed to save address");
+        }
+    };
+
+    const handleSetDefault = async (id: string) => {
+        try {
+            const res = await fetch(`/api/users/addresses/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ is_default: true }),
+            });
+
+            if (res.ok) {
+                setAddresses(prev => prev.map(a => ({ ...a, is_default: a.id === id })));
+            }
+        } catch (error) {
+            console.error("Failed to set default address:", error);
+        }
+    };
+
+    const handleDeleteAddress = async (id: string) => {
+        try {
+            const res = await fetch(`/api/users/addresses/${id}`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                setAddresses(prev => prev.filter(a => a.id !== id));
+            }
+        } catch (error) {
+            console.error("Failed to delete address:", error);
+        }
         setDeleteAddressConfirm(null);
     };
 
     const addressToDelete = addresses.find(a => a.id === deleteAddressConfirm);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="inline-block w-8 h-8 border-4 border-virsa-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8 max-w-4xl">
@@ -222,28 +348,32 @@ export default function CustomerSettingsPage() {
                     {addresses.map(address => (
                         <div
                             key={address.id}
-                            className={`rounded-xl p-5 relative transition-all ${address.isDefault
+                            className={`rounded-xl p-5 relative transition-all ${address.is_default
                                 ? "border-2 border-virsa-primary bg-virsa-light/10"
                                 : "border border-gray-200 hover:border-gray-300"
                                 }`}
                         >
-                            {address.isDefault && (
+                            {address.is_default && (
                                 <span className="absolute top-4 right-4 bg-virsa-primary text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider shadow-sm">
                                     Default
                                 </span>
                             )}
                             <div className="flex items-start gap-3 mb-3">
-                                <MapPin className={`w-5 h-5 flex-shrink-0 mt-0.5 ${address.isDefault ? "text-virsa-primary" : "text-gray-400"}`} />
+                                <MapPin className={`w-5 h-5 flex-shrink-0 mt-0.5 ${address.is_default ? "text-virsa-primary" : "text-gray-400"}`} />
                                 <div>
                                     <h3 className="font-bold text-gray-900">{address.label}</h3>
-                                    <p className="text-sm text-gray-600 mt-1">{address.line1}<br />{address.line2}</p>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        {address.street_address}<br />
+                                        {address.city}, {address.province} {address.postal_code}<br />
+                                        {address.country}
+                                    </p>
                                 </div>
                             </div>
-                            <div className={`flex gap-3 mt-4 pt-4 border-t ${address.isDefault ? "border-virsa-primary/20" : "border-gray-100"}`}>
+                            <div className={`flex gap-3 mt-4 pt-4 border-t ${address.is_default ? "border-virsa-primary/20" : "border-gray-100"}`}>
                                 <button onClick={() => openEditAddress(address)} className="flex items-center gap-1 text-sm font-bold text-virsa-primary hover:underline">
                                     <Pencil className="w-3.5 h-3.5" /> Edit
                                 </button>
-                                {!address.isDefault && (
+                                {!address.is_default && (
                                     <button onClick={() => handleSetDefault(address.id)} className="text-sm font-medium text-gray-600 hover:text-virsa-primary transition-colors">
                                         Set as Default
                                     </button>
@@ -340,21 +470,55 @@ export default function CustomerSettingsPage() {
                                 <label className="text-sm font-bold text-gray-700">Street Address</label>
                                 <input
                                     type="text"
-                                    value={addressForm.line1}
-                                    onChange={e => setAddressForm(f => ({ ...f, line1: e.target.value }))}
+                                    value={addressForm.street_address}
+                                    onChange={e => setAddressForm(f => ({ ...f, street_address: e.target.value }))}
                                     placeholder="123 Main Street"
                                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary transition-all"
                                 />
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-bold text-gray-700">City, Province, Country</label>
-                                <input
-                                    type="text"
-                                    value={addressForm.line2}
-                                    onChange={e => setAddressForm(f => ({ ...f, line2: e.target.value }))}
-                                    placeholder="Lahore, Punjab, Pakistan"
-                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary transition-all"
-                                />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-gray-700">City</label>
+                                    <input
+                                        type="text"
+                                        value={addressForm.city}
+                                        onChange={e => setAddressForm(f => ({ ...f, city: e.target.value }))}
+                                        placeholder="Lahore"
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-gray-700">Province</label>
+                                    <input
+                                        type="text"
+                                        value={addressForm.province}
+                                        onChange={e => setAddressForm(f => ({ ...f, province: e.target.value }))}
+                                        placeholder="Punjab"
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-gray-700">Postal Code</label>
+                                    <input
+                                        type="text"
+                                        value={addressForm.postal_code}
+                                        onChange={e => setAddressForm(f => ({ ...f, postal_code: e.target.value }))}
+                                        placeholder="54000"
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-bold text-gray-700">Country</label>
+                                    <input
+                                        type="text"
+                                        value={addressForm.country}
+                                        onChange={e => setAddressForm(f => ({ ...f, country: e.target.value }))}
+                                        placeholder="Pakistan"
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary transition-all"
+                                    />
+                                </div>
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <button onClick={() => setAddressModal({ open: false, address: null })} className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors">
@@ -362,7 +526,7 @@ export default function CustomerSettingsPage() {
                                 </button>
                                 <button
                                     onClick={handleSaveAddress}
-                                    disabled={!addressForm.label.trim() || !addressForm.line1.trim()}
+                                    disabled={!addressForm.label.trim() || !addressForm.street_address.trim()}
                                     className="flex-1 py-3 rounded-xl bg-virsa-primary text-white font-bold hover:bg-virsa-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {addressModal.address ? "Save Changes" : "Add Address"}

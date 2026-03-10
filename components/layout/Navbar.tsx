@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Search, ShoppingCart, Heart, User, Menu, X, Bell } from "lucide-react";
+import { Search, ShoppingCart, Heart, User, Menu, X, LogOut } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/NotificationBell";
@@ -12,8 +13,10 @@ import NotificationBell from "@/components/NotificationBell";
 export default function Navbar() {
     const { count: cartCount } = useCart();
     const { count: wishlistCount } = useWishlist();
+    const { user, profile, signOut } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [showUserMenu, setShowUserMenu] = useState(false);
     const router = useRouter();
 
     const handleSearch = (e: React.FormEvent) => {
@@ -104,10 +107,51 @@ export default function Navbar() {
                         </Link>
 
                         {/* Account */}
-                        <Link href="/login" className="hover:text-virsa-primary transition-colors flex flex-col items-center gap-1">
-                            <User className="w-6 h-6" />
-                            <span className="text-[10px] hidden md:block font-medium">Account</span>
-                        </Link>
+                        {user && profile ? (
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowUserMenu(!showUserMenu)}
+                                    className="hover:text-virsa-primary transition-colors flex flex-col items-center gap-1"
+                                >
+                                    {profile.avatar_url ? (
+                                        <div className="w-6 h-6 rounded-full overflow-hidden">
+                                            <Image src={profile.avatar_url} alt={profile.full_name} width={24} height={24} />
+                                        </div>
+                                    ) : (
+                                        <User className="w-6 h-6" />
+                                    )}
+                                    <span className="text-[10px] hidden md:block font-medium">{profile.full_name.split(' ')[0]}</span>
+                                </button>
+
+                                {showUserMenu && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                                        <Link
+                                            href={profile.role === 'admin' ? '/admin/dashboard' : profile.role === 'vendor' ? '/vendor/dashboard' : '/dashboard'}
+                                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                            onClick={() => setShowUserMenu(false)}
+                                        >
+                                            Dashboard
+                                        </Link>
+                                        <button
+                                            onClick={async () => {
+                                                await signOut();
+                                                setShowUserMenu(false);
+                                                router.push('/');
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 flex items-center gap-2"
+                                        >
+                                            <LogOut className="w-4 h-4" />
+                                            Sign Out
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <Link href="/login" className="hover:text-virsa-primary transition-colors flex flex-col items-center gap-1">
+                                <User className="w-6 h-6" />
+                                <span className="text-[10px] hidden md:block font-medium">Account</span>
+                            </Link>
+                        )}
 
                         {/* Mobile Menu Toggle */}
                         <button

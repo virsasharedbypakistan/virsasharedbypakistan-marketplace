@@ -1,6 +1,58 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { Download, TrendingUp, TrendingDown, LineChart, Users, Store, ShoppingBag, Filter } from "lucide-react";
 
+type EarningsData = {
+    totalGMV: number;
+    commissionEarned: number;
+    activeVendors: number;
+    totalOrders: number;
+    topVendors: Array<{
+        vendor: string;
+        orders: number;
+        revenue: number;
+        commission: number;
+    }>;
+};
+
 export default function AdminEarningsPage() {
+    const [earnings, setEarnings] = useState<EarningsData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchEarnings();
+    }, []);
+
+    const fetchEarnings = async () => {
+        try {
+            const res = await fetch("/api/admin/earnings");
+            if (res.ok) {
+                const data = await res.json();
+                setEarnings(data.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch earnings:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
+
+    const kpis = [
+        { label: "Total GMV", value: earnings ? `Rs ${earnings.totalGMV.toLocaleString()}` : "...", icon: LineChart, trend: "+18.4%", up: true, color: "text-virsa-primary", bg: "bg-virsa-primary/10" },
+        { label: "Commission Earned (5%)", value: earnings ? `Rs ${earnings.commissionEarned.toLocaleString()}` : "...", icon: TrendingUp, trend: "+18.4%", up: true, color: "text-emerald-600", bg: "bg-emerald-50" },
+        { label: "Active Vendors", value: earnings ? String(earnings.activeVendors) : "...", icon: Store, trend: "+4.2%", up: true, color: "text-indigo-600", bg: "bg-indigo-50" },
+        { label: "Total Orders", value: earnings ? String(earnings.totalOrders) : "...", icon: ShoppingBag, trend: "-1.2%", up: false, color: "text-amber-600", bg: "bg-amber-50" },
+    ];
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -23,12 +75,7 @@ export default function AdminEarningsPage() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                    { label: "Total GMV", value: "Rs 24,58,000", icon: LineChart, trend: "+18.4%", up: true, color: "text-virsa-primary", bg: "bg-virsa-primary/10" },
-                    { label: "Commission Earned (5%)", value: "Rs 1,22,900", icon: TrendingUp, trend: "+18.4%", up: true, color: "text-emerald-600", bg: "bg-emerald-50" },
-                    { label: "Active Vendors", value: "342", icon: Store, trend: "+4.2%", up: true, color: "text-indigo-600", bg: "bg-indigo-50" },
-                    { label: "Total Orders", value: "12,482", icon: ShoppingBag, trend: "-1.2%", up: false, color: "text-amber-600", bg: "bg-amber-50" },
-                ].map((kpi, idx) => (
+                {kpis.map((kpi, idx) => (
                     <div key={idx} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                         <div className="flex justify-between items-start mb-3">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${kpi.bg} ${kpi.color}`}>
@@ -66,13 +113,7 @@ export default function AdminEarningsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 text-sm">
-                                {[
-                                    { vendor: "Tech Haven PK", orders: 842, revenue: "Rs 9,84,200", commission: "Rs 49,210" },
-                                    { vendor: "Electronics Pro", orders: 612, revenue: "Rs 7,45,000", commission: "Rs 37,250" },
-                                    { vendor: "Fashion Hub", orders: 1240, revenue: "Rs 4,28,000", commission: "Rs 21,400" },
-                                    { vendor: "Home Essentials", orders: 388, revenue: "Rs 2,10,500", commission: "Rs 10,525" },
-                                    { vendor: "Beauty Store", orders: 294, revenue: "Rs 1,80,100", commission: "Rs 9,005" },
-                                ].map((v, idx) => (
+                                {earnings?.topVendors.map((v, idx) => (
                                     <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -83,8 +124,8 @@ export default function AdminEarningsPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-gray-600">{v.orders.toLocaleString()}</td>
-                                        <td className="px-6 py-4 font-bold text-gray-900">{v.revenue}</td>
-                                        <td className="px-6 py-4 text-right font-bold text-virsa-primary">{v.commission}</td>
+                                        <td className="px-6 py-4 font-bold text-gray-900">Rs {v.revenue.toLocaleString()}</td>
+                                        <td className="px-6 py-4 text-right font-bold text-virsa-primary">Rs {v.commission.toLocaleString()}</td>
                                     </tr>
                                 ))}
                             </tbody>

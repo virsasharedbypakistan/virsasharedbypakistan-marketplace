@@ -1,88 +1,102 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Star, ThumbsUp, MoreVertical, Search, X, CheckCircle2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
 type Review = {
-    id: number;
-    productId: number;
-    productName: string;
-    productImage: string;
+    id: string;
+    product_id: string;
     rating: number;
-    date: string;
-    title: string;
-    content: string;
-    helpfulCount: number;
-    verifiedPurchase: boolean;
+    title: string | null;
+    comment: string;
+    created_at: string;
+    products: {
+        id: string;
+        name: string;
+        thumbnail_url: string | null;
+    };
 };
 
 export default function CustomerReviewsPage() {
-    const [reviews, setReviews] = useState<Review[]>([
-        {
-            id: 1,
-            productId: 1,
-            productName: "Heritage Embroidered Shawl",
-            productImage: "/images/products/product1.jpg",
-            rating: 5,
-            date: "October 20, 2023",
-            title: "Absolutely stunning quality!",
-            content: "The embroidery work is intricate and the fabric feels premium. Exactly as described. Will definitely order more from this vendor.",
-            helpfulCount: 24,
-            verifiedPurchase: true
-        },
-        {
-            id: 2,
-            productId: 2,
-            productName: "Hand-Painted Pottery Set",
-            productImage: "/images/products/product2.jpg",
-            rating: 4,
-            date: "September 15, 2023",
-            title: "Beautiful craftsmanship",
-            content: "The pottery is beautifully hand-painted with traditional Multan designs. Each piece is unique. Arrived well-packaged.",
-            helpfulCount: 5,
-            verifiedPurchase: true
-        },
-        {
-            id: 3,
-            productId: 1,
-            productName: "Traditional Ajrak Fabric",
-            productImage: "/images/products/product1.jpg",
-            rating: 5,
-            date: "August 2, 2023",
-            title: "Authentic Sindhi art",
-            content: "The Ajrak is genuine and the colors are vibrant. You can tell a lot of care went into the block-printing process. Very happy with my purchase.",
-            helpfulCount: 12,
-            verifiedPurchase: true
-        }
-    ]);
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [loading, setLoading] = useState(true);
 
     const [editModal, setEditModal] = useState<{ open: boolean; review: Review | null }>({ open: false, review: null });
-    const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [editForm, setEditForm] = useState({ rating: 5, title: "", content: "" });
-    const [menuOpen, setMenuOpen] = useState<number | null>(null);
+    const [menuOpen, setMenuOpen] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [saveSuccess, setSaveSuccess] = useState(false);
 
+    useEffect(() => {
+        const fetchReviews = async () => {
+            try {
+                const res = await fetch("/api/reviews?user_reviews=true");
+                if (res.ok) {
+                    const data = await res.json();
+                    setReviews(data.data || []);
+                }
+            } catch (error) {
+                console.error("Failed to fetch reviews:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReviews();
+    }, []);
+
     const openEdit = (review: Review) => {
-        setEditForm({ rating: review.rating, title: review.title, content: review.content });
+        setEditForm({ rating: review.rating, title: review.title || "", content: review.comment });
         setEditModal({ open: true, review });
         setMenuOpen(null);
         setSaveSuccess(false);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!editModal.review) return;
-        setReviews(prev => prev.map(r => r.id === editModal.review!.id
-            ? { ...r, rating: editForm.rating, title: editForm.title, content: editForm.content }
-            : r
-        ));
-        setSaveSuccess(true);
+
+        try {
+            const res = await fetch(`/api/reviews/${editModal.review.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    rating: editForm.rating,
+                    title: editForm.title,
+                    comment: editForm.content,
+                }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                setReviews(prev => prev.map(r => r.id === editModal.review!.id ? data.data : r));
+                setSaveSuccess(true);
+            } else {
+                alert("Failed to update review");
+            }
+        } catch (error) {
+            console.error("Failed to update review:", error);
+            alert("Failed to update review");
+        }
     };
 
-    const handleDelete = (id: number) => {
-        setReviews(prev => prev.filter(r => r.id !== id));
+    const handleDelete = async (id: string) => {
+        try {
+            const res = await fetch(`/api/reviews/${id}`, {
+                method: "DELETE",
+            });
+
+            if (res.ok) {
+                setReviews(prev => prev.filter(r => r.id !== id));
+            } else {
+                alert("Failed to delete review");
+            }
+        } catch (error) {
+            console.error("Failed to delete review:", error);
+            alert("Failed to delete review");
+        }
         setDeleteConfirm(null);
     };
 
@@ -93,13 +107,20 @@ export default function CustomerReviewsPage() {
     };
 
     const filteredReviews = reviews.filter(r =>
-        r.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.title.toLowerCase().includes(searchQuery.toLowerCase())
+        r.products.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (r.title && r.title.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     const avgRating = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "0.0";
-    const totalHelpful = reviews.reduce((s, r) => s + r.helpfulCount, 0);
     const reviewToDelete = reviews.find(r => r.id === deleteConfirm);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="inline-block w-8 h-8 border-4 border-virsa-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -121,7 +142,7 @@ export default function CustomerReviewsPage() {
             </div>
 
             {/* Stats Summary */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                 <div className="bg-white rounded-[20px] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100 text-center">
                     <p className="text-2xl font-bold text-gray-900">{reviews.length}</p>
                     <p className="text-sm font-medium text-gray-500 mt-1">Total Reviews</p>
@@ -132,13 +153,6 @@ export default function CustomerReviewsPage() {
                         <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
                     </div>
                     <p className="text-sm font-medium text-gray-500 mt-1">Average Rating</p>
-                </div>
-                <div className="bg-white rounded-[20px] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)] border border-gray-100 text-center col-span-2 sm:col-span-1">
-                    <div className="flex items-center justify-center gap-1.5">
-                        <p className="text-2xl font-bold text-gray-900">{totalHelpful}</p>
-                        <ThumbsUp className="w-5 h-5 text-blue-500" />
-                    </div>
-                    <p className="text-sm font-medium text-gray-500 mt-1">Helpful Votes</p>
                 </div>
             </div>
 
@@ -154,12 +168,12 @@ export default function CustomerReviewsPage() {
                     <div key={review.id} className="bg-white rounded-[24px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100 p-6 flex flex-col sm:flex-row gap-6">
                         {/* Product Info Sidebar */}
                         <div className="w-full sm:w-44 flex-shrink-0">
-                            <Link href={`/product/${review.productId}`} className="block group">
+                            <Link href={`/product/${review.product_id}`} className="block group">
                                 <div className="aspect-square bg-gray-50 rounded-xl mb-3 border border-gray-100 overflow-hidden relative">
-                                    <Image src={review.productImage} alt={review.productName} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                                    <Image src={review.products.thumbnail_url || "/product_headphones.png"} alt={review.products.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                                 </div>
                                 <h3 className="text-sm font-bold text-gray-900 group-hover:text-virsa-primary transition-colors line-clamp-2">
-                                    {review.productName}
+                                    {review.products.name}
                                 </h3>
                             </Link>
                         </div>
@@ -170,16 +184,10 @@ export default function CustomerReviewsPage() {
                                 <div>
                                     <div className="flex items-center gap-2 mb-2">
                                         <div className="flex">{generateStars(review.rating)}</div>
-                                        <span className="text-sm font-bold text-gray-900">{review.title}</span>
+                                        {review.title && <span className="text-sm font-bold text-gray-900">{review.title}</span>}
                                     </div>
                                     <div className="flex items-center gap-3 text-xs text-gray-500 font-medium">
-                                        <span>{review.date}</span>
-                                        {review.verifiedPurchase && (
-                                            <>
-                                                <span className="w-1 h-1 rounded-full bg-gray-300" />
-                                                <span className="text-emerald-600 font-bold">Verified Purchase</span>
-                                            </>
-                                        )}
+                                        <span>{new Date(review.created_at).toLocaleDateString()}</span>
                                     </div>
                                 </div>
 
@@ -204,13 +212,10 @@ export default function CustomerReviewsPage() {
                                 </div>
                             </div>
 
-                            <p className="text-gray-600 text-sm leading-relaxed mb-6">{review.content}</p>
+                            <p className="text-gray-600 text-sm leading-relaxed mb-6">{review.comment}</p>
 
                             <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                                <span className="text-xs font-medium text-gray-500">
-                                    <ThumbsUp className="w-3.5 h-3.5 inline mr-1.5 text-blue-400" />
-                                    {review.helpfulCount} people found this helpful
-                                </span>
+                                <span className="text-xs font-medium text-gray-500"></span>
                                 <div className="flex items-center gap-3">
                                     <button
                                         onClick={() => openEdit(review)}
@@ -257,9 +262,9 @@ export default function CustomerReviewsPage() {
                                 {/* Product Preview */}
                                 <div className="flex items-center gap-4 p-3 rounded-xl bg-gray-50">
                                     <div className="w-12 h-12 rounded-xl overflow-hidden relative flex-shrink-0">
-                                        <Image src={editModal.review.productImage} alt={editModal.review.productName} fill className="object-cover" />
+                                        <Image src={editModal.review.products.thumbnail_url || "/product_headphones.png"} alt={editModal.review.products.name} fill className="object-cover" />
                                     </div>
-                                    <p className="text-sm font-bold text-gray-900 line-clamp-2">{editModal.review.productName}</p>
+                                    <p className="text-sm font-bold text-gray-900 line-clamp-2">{editModal.review.products.name}</p>
                                 </div>
 
                                 {/* Star Rating */}
@@ -302,7 +307,7 @@ export default function CustomerReviewsPage() {
                                     </button>
                                     <button
                                         onClick={handleSave}
-                                        disabled={!editForm.content.trim() || !editForm.title.trim()}
+                                        disabled={!editForm.content.trim()}
                                         className="flex-1 py-3 rounded-xl bg-virsa-primary text-white font-bold hover:bg-virsa-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Save Changes

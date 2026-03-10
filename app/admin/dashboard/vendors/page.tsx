@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, MoreHorizontal, ShieldCheck, Download, Store, TrendingUp, AlertCircle, X, Eye, CheckCircle2, Ban, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 type Vendor = {
-    id: number;
+    id: string;
     name: string;
     owner: string;
     email: string;
@@ -19,15 +19,6 @@ type Vendor = {
 
 const VENDOR_IMAGES = ["/images/vendors/vendor1.png", "/images/vendors/vendor3.jpg"];
 
-const initialVendors: Vendor[] = [
-    { id: 1, name: "Khyber Crafts Official", owner: "Ahmed Yusuf", email: "ahmed@khybercrafts.pk", status: "Active", products: 48, revenue: "Rs 124.4k", joined: "Oct 11, 2023", logo: VENDOR_IMAGES[0] },
-    { id: 2, name: "Sindh Heritage Store", owner: "Mariam Fatima", email: "mariam@sindhheritage.pk", status: "Pending", products: 0, revenue: "Rs 0", joined: "Oct 25, 2023", logo: VENDOR_IMAGES[1] },
-    { id: 3, name: "Multan Art House", owner: "Zubair Malik", email: "zubair@multanart.pk", status: "Active", products: 72, revenue: "Rs 284.2k", joined: "Oct 13, 2023", logo: VENDOR_IMAGES[0] },
-    { id: 4, name: "Lahori Bazaar", owner: "Nida Rehman", email: "nida@lahoribazaar.pk", status: "Active", products: 104, revenue: "Rs 341.8k", joined: "Oct 14, 2023", logo: VENDOR_IMAGES[1] },
-    { id: 5, name: "Desert Crafts Co", owner: "Tariq Shah", email: "tariq@desertcrafts.pk", status: "Active", products: 29, revenue: "Rs 71.0k", joined: "Oct 15, 2023", logo: VENDOR_IMAGES[0] },
-    { id: 6, name: "Baloch Traditions", owner: "Hamza Qureshi", email: "hamza@baloch.pk", status: "Suspended", products: 15, revenue: "Rs 42.6k", joined: "Oct 16, 2023", logo: VENDOR_IMAGES[1] },
-];
-
 const statusStyle = (s: string) => {
     switch (s) {
         case "Active": return "bg-emerald-50 text-emerald-600 border-emerald-100";
@@ -38,15 +29,45 @@ const statusStyle = (s: string) => {
 };
 
 export default function AdminVendorsPage() {
-    const [vendors, setVendors] = useState(initialVendors);
+    const [vendors, setVendors] = useState<Vendor[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
-    const [menuOpen, setMenuOpen] = useState<number | null>(null);
+    const [menuOpen, setMenuOpen] = useState<string | null>(null);
     const [viewModal, setViewModal] = useState<{ open: boolean; vendor: Vendor | null }>({ open: false, vendor: null });
     const [approveConfirm, setApproveConfirm] = useState<Vendor | null>(null);
     const [rejectConfirm, setRejectConfirm] = useState<Vendor | null>(null);
     const [suspendConfirm, setSuspendConfirm] = useState<Vendor | null>(null);
-    const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [toast, setToast] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetchVendors();
+    }, []);
+
+    const fetchVendors = async () => {
+        try {
+            const res = await fetch("/api/admin/vendors");
+            if (res.ok) {
+                const data = await res.json();
+                const formattedVendors = data.data.map((v: any, idx: number) => ({
+                    id: v.id,
+                    name: v.store_name,
+                    owner: v.owner_name,
+                    email: v.email,
+                    status: v.status === "active" ? "Active" : v.status === "pending" ? "Pending" : "Suspended",
+                    products: v.product_count || 0,
+                    revenue: `Rs ${(v.total_revenue || 0).toLocaleString()}`,
+                    joined: new Date(v.created_at).toLocaleDateString(),
+                    logo: VENDOR_IMAGES[idx % 2]
+                }));
+                setVendors(formattedVendors);
+            }
+        } catch (error) {
+            console.error("Failed to fetch vendors:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
@@ -56,33 +77,89 @@ export default function AdminVendorsPage() {
         v.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const handleApprove = (id: number) => {
+    const handleApprove = async (id: string) => {
+        try {
+            const res = await fetch(`/api/admin/vendors/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "active" })
+            });
+
+            if (res.ok) {
+                const v = vendors.find(v => v.id === id);
+                setVendors(prev => prev.map(v => v.id === id ? { ...v, status: "Active" } : v));
+                setApproveConfirm(null); setMenuOpen(null);
+                showToast(`${v?.name} has been approved.`);
+            }
+        } catch (error) {
+            console.error("Failed to approve vendor:", error);
+        }
+    };
+
+    const handleReject = async (id: string) => {
+        try {
+            const res = await fetch(`/api/admin/vendors/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "rejected" })
+            });
+
+            if (res.ok) {
+                setVendors(prev => prev.filter(v => v.id !== id));
+                setRejectConfirm(null); setMenuOpen(null);
+                showToast("Vendor application rejected and removed.");
+            }
+        } catch (error) {
+            console.error("Failed to reject vendor:", error);
+        }
+    };
+
+    const handleSuspend = async (id: string) => {
         const v = vendors.find(v => v.id === id);
-        setVendors(prev => prev.map(v => v.id === id ? { ...v, status: "Active" } : v));
-        setApproveConfirm(null); setMenuOpen(null);
-        showToast(`${v?.name} has been approved.`);
+        const newStatus = v?.status === "Suspended" ? "active" : "suspended";
+        
+        try {
+            const res = await fetch(`/api/admin/vendors/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (res.ok) {
+                setVendors(prev => prev.map(v => v.id === id ? { ...v, status: v.status === "Suspended" ? "Active" : "Suspended" } : v));
+                setSuspendConfirm(null); setMenuOpen(null);
+                showToast(v?.status === "Suspended" ? `${v.name} has been reactivated.` : `${v?.name} has been suspended.`);
+            }
+        } catch (error) {
+            console.error("Failed to update vendor status:", error);
+        }
     };
 
-    const handleReject = (id: number) => {
-        setVendors(prev => prev.filter(v => v.id !== id));
-        setRejectConfirm(null); setMenuOpen(null);
-        showToast("Vendor application rejected and removed.");
-    };
+    const handleDelete = async (id: string) => {
+        try {
+            const res = await fetch(`/api/admin/vendors/${id}`, {
+                method: "DELETE"
+            });
 
-    const handleSuspend = (id: number) => {
-        const v = vendors.find(v => v.id === id);
-        setVendors(prev => prev.map(v => v.id === id ? { ...v, status: v.status === "Suspended" ? "Active" : "Suspended" } : v));
-        setSuspendConfirm(null); setMenuOpen(null);
-        showToast(v?.status === "Suspended" ? `${v.name} has been reactivated.` : `${v?.name} has been suspended.`);
-    };
-
-    const handleDelete = (id: number) => {
-        setVendors(prev => prev.filter(v => v.id !== id));
-        setDeleteConfirm(null);
-        showToast("Vendor account deleted successfully.");
+            if (res.ok) {
+                setVendors(prev => prev.filter(v => v.id !== id));
+                setDeleteConfirm(null);
+                showToast("Vendor account deleted successfully.");
+            }
+        } catch (error) {
+            console.error("Failed to delete vendor:", error);
+        }
     };
 
     const vendorToDelete = vendors.find(v => v.id === deleteConfirm);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6" onClick={() => setMenuOpen(null)}>

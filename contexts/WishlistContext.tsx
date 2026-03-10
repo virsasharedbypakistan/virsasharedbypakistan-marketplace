@@ -1,59 +1,129 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useAuth } from "./AuthContext";
 
 export type WishlistItem = {
-    id: number;
+    id: string;
+    product_id: string;
     name: string;
     price: string;
     priceNum: number;
     originalPrice?: string;
     vendor: string;
     badge?: string | null;
+    image?: string;
 };
 
 type WishlistContextType = {
     items: WishlistItem[];
     count: number;
-    toggle: (item: WishlistItem) => void;
-    isInWishlist: (id: number) => boolean;
-    remove: (id: number) => void;
-    clear: () => void;
+    loading: boolean;
+    toggle: (productId: string) => Promise<void>;
+    isInWishlist: (productId: string) => boolean;
+    remove: (wishlistItemId: string) => Promise<void>;
+    refreshWishlist: () => Promise<void>;
 };
 
 const WishlistContext = createContext<WishlistContextType | null>(null);
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
     const [items, setItems] = useState<WishlistItem[]>([]);
+    const [loading, setLoading] = useState(false);
+    const { user } = useAuth();
 
-    useEffect(() => {
+    const refreshWishlist = useCallback(async () => {
+        if (!user) {
+            setItems([]);
+            return;
+        }
+
         try {
-            const stored = localStorage.getItem("virsa_wishlist");
-            if (stored) setItems(JSON.parse(stored));
-        } catch { }
-    }, []);
+            const res = await fetch("/api/wishlist");
+            if (res.ok) {
+                const data = await res.json();
+                const wishlistItems = (data.data || []).map((item: any) => ({
+                    id: item.id,
+                    product_id: item.products.id,
+                    name: item.products.name,
+                    price: `Rs ${(item.products.sale_price || item.products.price).toLocaleString()}`,
+                    priceNum: item.products.sale_price || item.products.price,
+                    originalPrice: item.products.sale_price ? `Rs ${item.products.price.toLocaleString()}` : undefined,
+                    vendor: item.products.vendors.store_name,
+                    image: item.products.thumbnail_url || item.products.images?.[0],
+                }));
+                setItems(wishlistItems);
+            }
+        } catch (error) {
+            console.error("Failed to fetch wishlist:", error);
+        }
+    }, [user]);
 
     useEffect(() => {
-        localStorage.setItem("virsa_wishlist", JSON.stringify(items));
+        refreshWishlist();
+    }, [refreshWishlist]);
+
+    const toggle = useCallback(async (productId: string) => {
+        if (!user) {
+            alert("Please login to add items to wishlist");
+            return;
+        }
+
+        const existing = items.find(i => i.product_id === productId);
+        
+        setLoading(true);
+        try {
+            if (existing) {
+                // Remove from wishlist
+                const res = await fetch(`/api/wishlist/${existing.id}`, {
+                    method: "DELETE",
+                });
+                if (res.ok) {
+                    await refreshWishlist();
+                }
+            } else {
+                // Add to wishlist
+                const res = await fetch("/api/wishlist", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ product_id: productId }),
+                });
+                if (res.ok) {
+                    await refreshWishlist();
+                }
+            }
+        } catch (error) {
+            console.error("Failed to toggle wishlist:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [user, items, refreshWishlist]);
+
+    const isInWishlist = useCallback((productId: string) => {
+        return items.some((i) => i.product_id === productId);
     }, [items]);
 
-    const toggle = useCallback((item: WishlistItem) => {
-        setItems((prev) => {
-            const exists = prev.find((i) => i.id === item.id);
-            if (exists) return prev.filter((i) => i.id !== item.id);
-            return [...prev, item];
-        });
-    }, []);
+    const remove = useCallback(async (wishlistItemId: string) => {
+        if (!user) return;
 
-    const isInWishlist = useCallback((id: number) => items.some((i) => i.id === id), [items]);
-
-    const remove = useCallback((id: number) => setItems((prev) => prev.filter((i) => i.id !== id)), []);
-
-    const clear = useCallback(() => setItems([]), []);
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/wishlist/${wishlistItemId}`, {
+                method: "DELETE",
+            });
+            if (res.ok) {
+                await refreshWishlist();
+            }
+        } catch (error) {
+            console.error("Failed to remove from wishlist:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [user, refreshWishlist]);
 
     const count = items.length;
 
     return (
-        <WishlistContext.Provider value={{ items, count, toggle, isInWishlist, remove, clear }}>
+        <WishlistContext.Provider value={{ items, count, loading, toggle, isInWishlist, remove, refreshWishlist }}>
             {children}
         </WishlistContext.Provider>
     );

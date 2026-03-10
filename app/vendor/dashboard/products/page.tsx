@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, Edit, Trash2, X, CheckCircle2, Package, Eye, EyeOff } from "lucide-react";
 import Image from "next/image";
 
@@ -16,14 +16,6 @@ type Product = {
 
 const PRODUCT_IMAGES = ["/images/products/product1.jpg", "/images/products/product2.jpg"];
 
-const initialProducts: Product[] = [
-    { id: 1, name: "Heritage Embroidered Shawl", category: "Textiles > Shawls", status: "Active", stock: 28, price: 199.99, image: PRODUCT_IMAGES[0] },
-    { id: 2, name: "Hand-Painted Pottery Set", category: "Crafts > Pottery", status: "Active", stock: 0, price: 399.98, image: PRODUCT_IMAGES[1] },
-    { id: 3, name: "Traditional Ajrak Fabric", category: "Textiles > Fabric", status: "Draft", stock: 56, price: 129.50, image: PRODUCT_IMAGES[0] },
-    { id: 4, name: "Sindhi Embroidered Kurta", category: "Clothing > Kurta", status: "Active", stock: 42, price: 599.95, image: PRODUCT_IMAGES[1] },
-    { id: 5, name: "Handwoven Kilim Rug", category: "Home Decor > Rugs", status: "Hidden", stock: 8, price: 999.99, image: PRODUCT_IMAGES[0] },
-];
-
 const statusStyle = (s: string) => {
     switch (s) {
         case "Active": return "bg-emerald-50 text-emerald-600 border-emerald-100";
@@ -33,16 +25,44 @@ const statusStyle = (s: string) => {
     }
 };
 
-type FormState = { name: string; category: string; status: Product["status"]; stock: string; price: string; image: string };
-const emptyForm: FormState = { name: "", category: "", status: "Active", stock: "", price: "", image: PRODUCT_IMAGES[0] };
+type FormState = { name: string; category: string; status: Product["status"]; stock: string; price: string; image: string; description: string };
+const emptyForm: FormState = { name: "", category: "", status: "Active", stock: "", price: "", image: PRODUCT_IMAGES[0], description: "" };
 
 export default function VendorProductsPage() {
-    const [products, setProducts] = useState(initialProducts);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [modal, setModal] = useState<{ open: boolean; product: Product | null }>({ open: false, product: null });
     const [form, setForm] = useState<FormState>(emptyForm);
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
     const [savedId, setSavedId] = useState<number | null>(null);
+
+    useEffect(() => {
+        fetchProducts();
+    }, []);
+
+    const fetchProducts = async () => {
+        try {
+            const response = await fetch("/api/vendor/products");
+            if (response.ok) {
+                const data = await response.json();
+                const formattedProducts = data.data.map((product: any) => ({
+                    id: product.id,
+                    name: product.name,
+                    category: product.category_name || "Uncategorized",
+                    status: product.status === "active" ? "Active" : product.status === "draft" ? "Draft" : "Hidden",
+                    stock: product.stock_quantity,
+                    price: product.price,
+                    image: product.images?.[0] || PRODUCT_IMAGES[0]
+                }));
+                setProducts(formattedProducts);
+            }
+        } catch (error) {
+            console.error("Failed to fetch products:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const filtered = products.filter(p =>
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -51,37 +71,102 @@ export default function VendorProductsPage() {
 
     const openAdd = () => { setForm(emptyForm); setModal({ open: true, product: null }); setSavedId(null); };
     const openEdit = (p: Product) => {
-        setForm({ name: p.name, category: p.category, status: p.status, stock: String(p.stock), price: String(p.price), image: p.image });
+        setForm({ name: p.name, category: p.category, status: p.status, stock: String(p.stock), price: String(p.price), image: p.image, description: "" });
         setModal({ open: true, product: p });
         setSavedId(null);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!form.name.trim()) return;
-        if (modal.product) {
-            setProducts(prev => prev.map(p => p.id === modal.product!.id
-                ? { ...p, name: form.name, category: form.category, status: form.status, stock: Number(form.stock), price: Number(form.price), image: form.image }
-                : p
-            ));
-            setSavedId(modal.product.id);
-        } else {
-            const newId = Date.now();
-            setProducts(prev => [...prev, { id: newId, name: form.name, category: form.category, status: form.status, stock: Number(form.stock), price: Number(form.price), image: form.image }]);
-            setSavedId(newId);
+        try {
+            if (modal.product) {
+                // Update existing product
+                const response = await fetch(`/api/products/${modal.product.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: form.name,
+                        price: Number(form.price),
+                        stock_quantity: Number(form.stock),
+                        status: form.status.toLowerCase(),
+                        images: [form.image]
+                    })
+                });
+
+                if (response.ok) {
+                    await fetchProducts();
+                    setSavedId(modal.product.id);
+                }
+            } else {
+                // Create new product
+                const response = await fetch("/api/products", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: form.name,
+                        description: form.description || form.name,
+                        price: Number(form.price),
+                        stock_quantity: Number(form.stock),
+                        status: form.status.toLowerCase(),
+                        images: [form.image],
+                        category_id: 1 // Default category
+                    })
+                });
+
+                if (response.ok) {
+                    await fetchProducts();
+                }
+            }
+            setModal({ open: false, product: null });
+        } catch (error) {
+            console.error("Failed to save product:", error);
         }
-        setModal({ open: false, product: null });
     };
 
-    const handleDelete = (id: number) => {
-        setProducts(prev => prev.filter(p => p.id !== id));
-        setDeleteConfirm(null);
+    const handleDelete = async (id: number) => {
+        try {
+            const response = await fetch(`/api/products/${id}`, {
+                method: "DELETE"
+            });
+
+            if (response.ok) {
+                setProducts(prev => prev.filter(p => p.id !== id));
+                setDeleteConfirm(null);
+            }
+        } catch (error) {
+            console.error("Failed to delete product:", error);
+        }
     };
 
-    const toggleStatus = (id: number) => {
-        setProducts(prev => prev.map(p => p.id === id ? { ...p, status: p.status === "Active" ? "Hidden" : "Active" } : p));
+    const toggleStatus = async (id: number) => {
+        const product = products.find(p => p.id === id);
+        if (!product) return;
+
+        const newStatus = product.status === "Active" ? "hidden" : "active";
+        try {
+            const response = await fetch(`/api/products/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (response.ok) {
+                setProducts(prev => prev.map(p => p.id === id ? { ...p, status: newStatus === "active" ? "Active" : "Hidden" } : p));
+            }
+        } catch (error) {
+            console.error("Failed to toggle status:", error);
+        }
     };
 
     const productToDelete = products.find(p => p.id === deleteConfirm);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-virsa-primary"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -222,6 +307,17 @@ export default function VendorProductsPage() {
                                     value={form.name}
                                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                                     placeholder="e.g. Heritage Embroidered Shawl"
+                                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-bold text-gray-700 block mb-1.5">Description</label>
+                                <textarea
+                                    value={form.description}
+                                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                                    placeholder="Product description..."
+                                    rows={3}
                                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary transition-all"
                                 />
                             </div>
