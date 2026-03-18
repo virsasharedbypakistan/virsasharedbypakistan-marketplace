@@ -6,7 +6,7 @@ import { Search, ShoppingCart, Heart, User, Menu, X, LogOut } from "lucide-react
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import NotificationBell from "@/components/NotificationBell";
 
@@ -17,7 +17,30 @@ export default function Navbar() {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [isVisible, setIsVisible] = useState(true);
+    const [lastScrollY, setLastScrollY] = useState(0);
     const router = useRouter();
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY;
+            
+            // Show navbar when scrolling up or at the top
+            if (currentScrollY < lastScrollY || currentScrollY < 10) {
+                setIsVisible(true);
+            } 
+            // Hide navbar when scrolling down (after 10px threshold)
+            else if (currentScrollY > lastScrollY && currentScrollY > 10) {
+                setIsVisible(false);
+                setShowUserMenu(false); // Close user menu when hiding
+            }
+            
+            setLastScrollY(currentScrollY);
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [lastScrollY]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -37,18 +60,18 @@ export default function Navbar() {
     ];
 
     return (
-        <header className="bg-white sticky top-0 z-50 shadow-sm">
+        <header className={`bg-white sticky top-0 z-50 shadow-sm transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
             {/* Top Header */}
             <div className="container mx-auto px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
                     {/* Logo */}
                     <Link href="/" className="flex-shrink-0">
-                        <div className="relative h-12 w-32 md:h-14 md:w-40">
+                        <div className="relative h-20 w-52 md:h-24 md:w-64">
                             <Image
                                 src="/virsa-logo.png"
                                 alt="Virsa Marketplace Logo"
                                 fill
-                                className="object-contain"
+                                className="object-contain drop-shadow-md"
                                 priority
                             />
                         </div>

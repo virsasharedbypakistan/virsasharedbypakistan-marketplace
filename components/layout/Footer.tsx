@@ -40,11 +40,11 @@ export default function Footer() {
                     <div>
                         <h3 className="text-lg font-bold text-gray-900 mb-6">Quick Links</h3>
                         <ul className="space-y-3">
-                            <li><Link href="/about" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">About Us</Link></li>
                             <li><Link href="/contact" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Contact Us</Link></li>
-                            <li><Link href="/faq" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">FAQ</Link></li>
                             <li><Link href="/vendors/register" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Become a Vendor</Link></li>
-                            <li><Link href="/blog" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Blog</Link></li>
+                            <li><Link href="/products" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Shop Products</Link></li>
+                            <li><Link href="/vendors" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Browse Stores</Link></li>
+                            <li><Link href="/deals" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Daily Deals</Link></li>
                         </ul>
                     </div>
 
@@ -54,9 +54,9 @@ export default function Footer() {
                         <ul className="space-y-3">
                             <li><Link href="/dashboard" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">My Account</Link></li>
                             <li><Link href="/dashboard/orders" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Track Order</Link></li>
-                            <li><Link href="/returns" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Returns & Refunds</Link></li>
-                            <li><Link href="/shipping" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Shipping Info</Link></li>
-                            <li><Link href="/terms" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Terms & Conditions</Link></li>
+                            <li><Link href="/wishlist" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">My Wishlist</Link></li>
+                            <li><Link href="/cart" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Shopping Cart</Link></li>
+                            <li><Link href="/contact" className="text-gray-600 hover:text-virsa-primary transition-colors text-sm">Help & Support</Link></li>
                         </ul>
                     </div>
 

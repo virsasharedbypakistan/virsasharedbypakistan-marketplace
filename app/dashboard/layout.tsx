@@ -1,11 +1,19 @@
+"use client";
+
 import Link from "next/link";
 import { LayoutDashboard, ShoppingBag, Heart, Star, Settings, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function CustomerDashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const { user, profile, signOut } = useAuth();
+    const router = useRouter();
+
     const navItems = [
         { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
         { name: "My Orders", href: "/dashboard/orders", icon: ShoppingBag },
@@ -14,6 +22,20 @@ export default function CustomerDashboardLayout({
         { name: "Account Settings", href: "/dashboard/settings", icon: Settings },
     ];
 
+    const handleSignOut = async () => {
+        await signOut();
+        router.push("/login");
+    };
+
+    const getInitials = (name: string) => {
+        return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+    };
+
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="flex flex-col md:flex-row gap-8">
@@ -21,12 +43,23 @@ export default function CustomerDashboardLayout({
                 <div className="w-full md:w-64 flex-shrink-0">
                     <div className="bg-white rounded-[24px] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100 sticky top-24">
                         <div className="flex items-center gap-4 mb-8">
-                            <div className="w-12 h-12 rounded-full bg-virsa-primary text-white flex items-center justify-center text-xl font-bold shadow-md">
-                                AD
-                            </div>
+                            {profile?.avatar_url ? (
+                                <div className="w-12 h-12 rounded-full overflow-hidden shadow-md relative">
+                                    <Image
+                                        src={profile.avatar_url}
+                                        alt={profile.full_name}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="w-12 h-12 rounded-full bg-virsa-primary text-white flex items-center justify-center text-xl font-bold shadow-md">
+                                    {profile?.full_name ? getInitials(profile.full_name) : "U"}
+                                </div>
+                            )}
                             <div>
-                                <h2 className="font-bold text-gray-900">Alex Doe</h2>
-                                <p className="text-xs text-gray-500">alex@example.com</p>
+                                <h2 className="font-bold text-gray-900">{profile?.full_name || "User"}</h2>
+                                <p className="text-xs text-gray-500">{user?.email || ""}</p>
                             </div>
                         </div>
 
@@ -43,13 +76,13 @@ export default function CustomerDashboardLayout({
                             ))}
 
                             <div className="pt-4 mt-4 border-t border-gray-100">
-                                <Link
-                                    href="/login"
-                                    className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                <button
+                                    onClick={handleSignOut}
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                                 >
                                     <LogOut className="w-5 h-5" />
                                     Sign Out
-                                </Link>
+                                </button>
                             </div>
                         </nav>
                     </div>

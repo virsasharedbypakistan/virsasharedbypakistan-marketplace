@@ -44,14 +44,14 @@ export default function CustomerDashboardPage() {
                 const res = await fetch("/api/orders?limit=5");
                 if (res.ok) {
                     const data = await res.json();
-                    const orders = data.data || [];
+                    const orders = Array.isArray(data.data) ? data.data : [];
                     setRecentOrders(orders);
 
                     // Calculate stats
                     const allOrdersRes = await fetch("/api/orders");
                     if (allOrdersRes.ok) {
                         const allData = await allOrdersRes.json();
-                        const allOrders = allData.data || [];
+                        const allOrders = Array.isArray(allData.data) ? allData.data : [];
                         setStats({
                             total: allOrders.length,
                             pending: allOrders.filter((o: Order) => o.status === "pending").length,
