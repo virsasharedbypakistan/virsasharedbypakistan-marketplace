@@ -104,17 +104,24 @@ export default function AdminDashboardPage() {
             const res = await fetch(`/api/admin/vendors/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: "active" })
+                body: JSON.stringify({ action: "approve" })
             });
+
+            const data = await res.json();
 
             if (res.ok) {
                 const v = pendingVendors.find(v => v.id === id);
                 setPendingVendors(prev => prev.filter(v => v.id !== id));
                 setApproveConfirm(null);
                 showToast(`${v?.name} has been approved!`);
+            } else {
+                setApproveConfirm(null);
+                alert(data.error || data.message || "Failed to approve vendor. Please try again.");
             }
         } catch (error) {
             console.error("Failed to approve vendor:", error);
+            setApproveConfirm(null);
+            alert("Failed to approve vendor. Please try again.");
         }
     };
 
@@ -123,17 +130,24 @@ export default function AdminDashboardPage() {
             const res = await fetch(`/api/admin/vendors/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: "rejected" })
+                body: JSON.stringify({ action: "reject" })
             });
+
+            const data = await res.json();
 
             if (res.ok) {
                 const v = pendingVendors.find(v => v.id === id);
                 setPendingVendors(prev => prev.filter(v => v.id !== id));
                 setRejectConfirm(null);
                 showToast(`${v?.name} has been rejected.`);
+            } else {
+                setRejectConfirm(null);
+                alert(data.error || data.message || "Failed to reject vendor. Please try again.");
             }
         } catch (error) {
             console.error("Failed to reject vendor:", error);
+            setRejectConfirm(null);
+            alert("Failed to reject vendor. Please try again.");
         }
     };
 

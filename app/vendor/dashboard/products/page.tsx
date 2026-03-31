@@ -25,8 +25,26 @@ const statusStyle = (s: string) => {
     }
 };
 
-type FormState = { name: string; category: string; status: Product["status"]; stock: string; price: string; image: string; description: string };
-const emptyForm: FormState = { name: "", category: "", status: "Active", stock: "", price: "", image: PRODUCT_IMAGES[0], description: "" };
+type FormState = { 
+    name: string; 
+    category: string; 
+    status: Product["status"]; 
+    stock: string; 
+    price: string; 
+    images: string[]; 
+    description: string;
+    uploadedFiles: File[];
+};
+const emptyForm: FormState = { 
+    name: "", 
+    category: "", 
+    status: "Active", 
+    stock: "", 
+    price: "", 
+    images: [], 
+    description: "",
+    uploadedFiles: []
+};
 
 export default function VendorProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
@@ -36,6 +54,7 @@ export default function VendorProductsPage() {
     const [form, setForm] = useState<FormState>(emptyForm);
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
     const [savedId, setSavedId] = useState<number | null>(null);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         fetchProducts();
@@ -72,14 +91,105 @@ export default function VendorProductsPage() {
 
     const openAdd = () => { setForm(emptyForm); setModal({ open: true, product: null }); setSavedId(null); };
     const openEdit = (p: Product) => {
-        setForm({ name: p.name, category: p.category, status: p.status, stock: String(p.stock), price: String(p.price), image: p.image, description: "" });
+        setForm({ 
+            name: p.name, 
+            category: p.category, 
+            status: p.status, 
+            stock: String(p.stock), 
+            price: String(p.price), 
+            images: [p.image], 
+            description: "",
+            uploadedFiles: []
+        });
         setModal({ open: true, product: p });
         setSavedId(null);
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        // Validate file types and sizes
+        const validFiles = files.filter(file => {
+            const isValidType = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type);
+            const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
+            return isValidType && isValidSize;
+        });
+
+        if (validFiles.length !== files.length) {
+            alert('Some files were skipped. Only JPEG, PNG, and WebP images under 5MB are allowed.');
+        }
+
+        // Create preview URLs
+        const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+        
+        setForm(f => ({
+            ...f,
+            uploadedFiles: [...f.uploadedFiles, ...validFiles],
+            images: [...f.images, ...newPreviews]
+        }));
+    };
+
+    const removeImage = (index: number) => {
+        setForm(f => {
+            const newImages = [...f.images];
+            const newFiles = [...f.uploadedFiles];
+            
+            // Revoke object URL if it's a preview
+            if (newImages[index].startsWith('blob:')) {
+                URL.revokeObjectURL(newImages[index]);
+            }
+            
+            newImages.splice(index, 1);
+            if (index < newFiles.length) {
+                newFiles.splice(index, 1);
+            }
+            
+            return { ...f, images: newImages, uploadedFiles: newFiles };
+        });
+    };
+
+    const uploadImages = async (): Promise<string[]> => {
+        const uploadedUrls: string[] = [];
+        
+        for (const file of form.uploadedFiles) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await fetch('/api/upload/product', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                uploadedUrls.push(data.data.url);
+            } else {
+                throw new Error('Failed to upload image');
+            }
+        }
+        
+        return uploadedUrls;
+    };
+
     const handleSave = async () => {
         if (!form.name.trim()) return;
+        if (form.images.length === 0) {
+            alert('Please add at least one product image');
+            return;
+        }
+        
+        setUploading(true);
+        
         try {
+            // Upload new images first
+            let finalImageUrls = [...form.images.filter(img => !img.startsWith('blob:'))];
+            
+            if (form.uploadedFiles.length > 0) {
+                const uploadedUrls = await uploadImages();
+                finalImageUrls = [...finalImageUrls, ...uploadedUrls];
+            }
+            
             if (modal.product) {
                 // Update existing product
                 const response = await fetch(`/api/products/${modal.product.id}`, {
@@ -90,13 +200,16 @@ export default function VendorProductsPage() {
                         price: Number(form.price),
                         stock: Number(form.stock),
                         status: form.status.toLowerCase(),
-                        images: [form.image]
+                        images: finalImageUrls
                     })
                 });
 
                 if (response.ok) {
                     await fetchProducts();
                     setSavedId(modal.product.id);
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Failed to update product');
                 }
             } else {
                 // Create new product
@@ -109,18 +222,24 @@ export default function VendorProductsPage() {
                         price: Number(form.price),
                         stock: Number(form.stock),
                         status: form.status.toLowerCase(),
-                        images: [form.image],
+                        images: finalImageUrls,
                         category_id: 1 // Default category
                     })
                 });
 
                 if (response.ok) {
                     await fetchProducts();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Failed to create product');
                 }
             }
             setModal({ open: false, product: null });
         } catch (error) {
             console.error("Failed to save product:", error);
+            alert('Failed to save product. Please try again.');
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -288,16 +407,48 @@ export default function VendorProductsPage() {
                             </button>
                         </div>
                         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                            {/* Image picker */}
+                            {/* Image upload */}
                             <div>
-                                <label className="text-sm font-bold text-gray-700 block mb-2">Product Image</label>
-                                <div className="flex gap-3">
-                                    {PRODUCT_IMAGES.map(img => (
-                                        <button key={img} onClick={() => setForm(f => ({ ...f, image: img }))} className={`w-20 h-20 rounded-xl overflow-hidden relative border-2 transition-all ${form.image === img ? "border-virsa-primary shadow-lg shadow-virsa-primary/20" : "border-gray-200"}`}>
-                                            <Image src={img} alt="product" fill className="object-cover" />
-                                            {form.image === img && <div className="absolute inset-0 bg-virsa-primary/20 flex items-center justify-center"><CheckCircle2 className="w-6 h-6 text-virsa-primary" /></div>}
-                                        </button>
-                                    ))}
+                                <label className="text-sm font-bold text-gray-700 block mb-2">Product Images *</label>
+                                <div className="space-y-3">
+                                    {/* Image previews */}
+                                    {form.images.length > 0 && (
+                                        <div className="grid grid-cols-4 gap-3">
+                                            {form.images.map((img, index) => (
+                                                <div key={index} className="relative w-full aspect-square rounded-xl overflow-hidden border-2 border-gray-200 group">
+                                                    <Image src={img} alt={`Product ${index + 1}`} fill className="object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeImage(index)}
+                                                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                    {index === 0 && (
+                                                        <div className="absolute bottom-0 left-0 right-0 bg-virsa-primary text-white text-xs py-1 text-center font-bold">
+                                                            Main
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    
+                                    {/* Upload button */}
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-virsa-primary hover:bg-virsa-primary/5 transition-all">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <Plus className="w-8 h-8 text-gray-400 mb-2" />
+                                            <p className="text-sm text-gray-500 font-medium">Click to upload images</p>
+                                            <p className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP (Max 5MB each)</p>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            multiple
+                                            onChange={handleFileSelect}
+                                        />
+                                    </label>
                                 </div>
                             </div>
 
@@ -371,15 +522,19 @@ export default function VendorProductsPage() {
                             </div>
 
                             <div className="flex gap-3 pt-2">
-                                <button onClick={() => setModal({ open: false, product: null })} className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors">
+                                <button 
+                                    onClick={() => setModal({ open: false, product: null })} 
+                                    className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors"
+                                    disabled={uploading}
+                                >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSave}
-                                    disabled={!form.name.trim()}
+                                    disabled={!form.name.trim() || form.images.length === 0 || uploading}
                                     className="flex-1 py-3 rounded-xl bg-virsa-primary text-white font-bold hover:bg-virsa-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {modal.product ? "Save Changes" : "Add Product"}
+                                    {uploading ? 'Uploading...' : modal.product ? "Save Changes" : "Add Product"}
                                 </button>
                             </div>
                         </div>

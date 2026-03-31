@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Instagram, Mail, Phone, MapPin, Youtube } from "lucide-react";
 
 export default function Footer() {
     return (
@@ -21,17 +21,19 @@ export default function Footer() {
                             Virsa is your premier multi-vendor marketplace platform, connecting buyers with thousands of trusted sellers offering quality products.
                         </p>
                         <div className="flex space-x-4">
-                            <a href="#" className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-virsa-primary hover:bg-virsa-primary hover:text-white transition-all">
+                            <a href="https://www.facebook.com/share/1DV1zNxTVk/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-virsa-primary hover:bg-virsa-primary hover:text-white transition-all">
                                 <Facebook className="w-5 h-5" />
                             </a>
-                            <a href="#" className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-virsa-primary hover:bg-virsa-primary hover:text-white transition-all">
-                                <Twitter className="w-5 h-5" />
-                            </a>
-                            <a href="#" className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-virsa-primary hover:bg-virsa-primary hover:text-white transition-all">
+                            <a href="https://www.instagram.com/virsabypakistan" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-virsa-primary hover:bg-virsa-primary hover:text-white transition-all">
                                 <Instagram className="w-5 h-5" />
                             </a>
-                            <a href="#" className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-virsa-primary hover:bg-virsa-primary hover:text-white transition-all">
-                                <Linkedin className="w-5 h-5" />
+                            <a href="https://www.tiktok.com/@virsa_pk_official" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-virsa-primary hover:bg-virsa-primary hover:text-white transition-all">
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                                </svg>
+                            </a>
+                            <a href="https://youtube.com/@virsa-official" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-virsa-primary hover:bg-virsa-primary hover:text-white transition-all">
+                                <Youtube className="w-5 h-5" />
                             </a>
                         </div>
                     </div>
@@ -70,11 +72,11 @@ export default function Footer() {
                             </li>
                             <li className="flex items-center">
                                 <Phone className="w-5 h-5 text-virsa-primary mr-3" />
-                                <span className="text-gray-600 text-sm">+1 (555) 123-4567</span>
+                                <span className="text-gray-600 text-sm">+92 318 5196832</span>
                             </li>
                             <li className="flex items-center">
                                 <Mail className="w-5 h-5 text-virsa-primary mr-3" />
-                                <span className="text-gray-600 text-sm">support@virsamarket.com</span>
+                                <span className="text-gray-600 text-sm">virsasharedbypakistan@gmail.com</span>
                             </li>
                         </ul>
                     </div>

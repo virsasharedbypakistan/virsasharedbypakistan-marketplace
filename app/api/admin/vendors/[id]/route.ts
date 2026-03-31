@@ -20,37 +20,58 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    console.log('[Admin Vendor PATCH] Starting request...');
+    
     const authResult = await requireRole('admin');
-    if ('error' in authResult) return authResult.error;
+    if ('error' in authResult) {
+      console.log('[Admin Vendor PATCH] Auth failed');
+      return authResult.error;
+    }
     const { user } = authResult;
+    console.log('[Admin Vendor PATCH] Auth successful, user:', user.id);
 
     // Rate limit
     const { success: allowed } = await mutationRateLimit.limit(user.id);
     if (!allowed) {
+      console.log('[Admin Vendor PATCH] Rate limited');
       return apiError('Too many requests. Try again later.', 429, 'RATE_LIMITED');
     }
 
     const { id } = await params;
+    console.log('[Admin Vendor PATCH] Vendor ID:', id);
 
     // Parse body
     const body = await request.json();
+    console.log('[Admin Vendor PATCH] Request body:', body);
+    
     const parsed = updateVendorStatusSchema.safeParse(body);
     if (!parsed.success) {
+      console.log('[Admin Vendor PATCH] Validation failed:', parsed.error.issues);
       return apiError(parsed.error.issues[0].message, 400, 'VALIDATION_ERROR');
     }
 
     const { action, reason, commission_type, commission_rate } = parsed.data;
+    console.log('[Admin Vendor PATCH] Action:', action, 'Vendor ID:', id);
 
     // Get vendor
-    const { data: vendor } = await supabaseAdmin
+    console.log('[Admin Vendor PATCH] Fetching vendor...');
+    const { data: vendor, error: vendorFetchError } = await supabaseAdmin
       .from('vendors')
       .select('id, user_id, store_name, status, email, phone, metadata, users!vendors_user_id_fkey(email, full_name)')
       .eq('id', id)
       .single();
 
-    if (!vendor) {
+    if (vendorFetchError || !vendor) {
+      console.error('[Admin Vendor PATCH] Vendor fetch error:', vendorFetchError);
       return apiError('Vendor not found', 404, 'VENDOR_NOT_FOUND');
     }
+    
+    console.log('[Admin Vendor PATCH] Vendor found:', {
+      id: vendor.id,
+      status: vendor.status,
+      has_user_id: !!vendor.user_id,
+      has_metadata: !!vendor.metadata
+    });
 
     const vendorUser = vendor.users as unknown as { email: string; full_name: string } | null;
 
@@ -62,55 +83,133 @@ export async function PATCH(
 
     let emailTemplate = null;
 
+    console.log('[Admin Vendor PATCH] Processing action:', action);
+
     switch (action) {
       case 'approve':
+        console.log('[Admin Vendor PATCH] Approve case - checking status');
         if (vendor.status === 'approved') {
+          console.log('[Admin Vendor PATCH] Already approved');
           return apiError('Vendor is already approved', 400, 'ALREADY_APPROVED');
         }
+        
+        console.log('[Admin Vendor PATCH] Setting status to approved');
         updateData.status = 'approved';
         updateData.rejection_reason = null;
 
         // If vendor doesn't have a user account yet (new application flow), create one
         if (!vendor.user_id && vendor.metadata) {
+          console.log('[Admin Vendor PATCH] New vendor application - creating user account');
           const metadata = vendor.metadata as any;
+          console.log('[Admin Vendor PATCH] Processing new vendor application, metadata keys:', Object.keys(metadata));
+          
+          // Validate required metadata fields
+          if (!metadata.encrypted_password || !metadata.first_name || !metadata.last_name) {
+            console.error('[Admin Vendor PATCH] Missing required metadata fields:', {
+              has_encrypted_password: !!metadata.encrypted_password,
+              has_first_name: !!metadata.first_name,
+              has_last_name: !!metadata.last_name
+            });
+            return apiError('Vendor application is missing required information. Please contact support.', 400, 'INVALID_METADATA');
+          }
           
           // Decrypt the stored password
-          const password = decryptSensitive(metadata.encrypted_password);
+          let password: string;
+          try {
+            console.log('[Admin Vendor PATCH] Decrypting password...');
+            password = decryptSensitive(metadata.encrypted_password);
+            console.log('[Admin Vendor PATCH] Password decrypted successfully');
+          } catch (decryptError) {
+            console.error('[Admin Vendor PATCH] Password decryption error:', decryptError);
+            return apiError('Failed to decrypt vendor credentials. Please contact support.', 500, 'DECRYPTION_ERROR');
+          }
           
           // Create user account via Supabase Auth (handles password hashing)
-          const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-            email: vendor.email,
-            password: password,
-            email_confirm: true, // Auto-confirm email since admin approved
-            user_metadata: { 
-              full_name: `${metadata.first_name} ${metadata.last_name}`,
-              phone: vendor.phone,
-            },
-          });
+          console.log('[Admin Vendor PATCH] Creating Supabase Auth user...');
+          
+          // First check if auth user already exists by querying auth.users table
+          const { data: existingAuthUsers } = await supabaseAdmin
+            .from('auth.users')
+            .select('id, email')
+            .eq('email', vendor.email)
+            .limit(1);
+          
+          let authUserId: string;
+          
+          if (existingAuthUsers && existingAuthUsers.length > 0) {
+            console.log('[Admin Vendor PATCH] Auth user already exists:', existingAuthUsers[0].id);
+            authUserId = existingAuthUsers[0].id;
+          } else {
+            const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+              email: vendor.email,
+              password: password,
+              email_confirm: true, // Auto-confirm email since admin approved
+              user_metadata: { 
+                full_name: `${metadata.first_name} ${metadata.last_name}`,
+                phone: vendor.phone,
+              },
+            });
 
-          if (authError) {
-            console.error('[Admin Vendor PATCH] Auth user creation error:', authError);
-            return apiError('Failed to create user account', 500);
+            if (authError) {
+              console.error('[Admin Vendor PATCH] Auth user creation error:', authError);
+              return apiError(`Failed to create user account: ${authError.message}`, 500, 'AUTH_ERROR');
+            }
+            
+            console.log('[Admin Vendor PATCH] Auth user created:', authUser.user.id);
+            authUserId = authUser.user.id;
           }
 
-          // Create user record in users table
-          const { data: newUser, error: userError } = await supabaseAdmin
+          // Check if user record already exists in users table
+          const { data: existingUser } = await supabaseAdmin
             .from('users')
-            .insert({
-              id: authUser.user.id, // Use Supabase Auth user ID
-              email: vendor.email,
-              full_name: `${metadata.first_name} ${metadata.last_name}`,
-              phone: vendor.phone,
-              role: 'vendor',
-            })
-            .select('id, email, full_name')
+            .select('id, email, role')
+            .eq('id', authUserId)
             .single();
 
-          if (userError) {
-            console.error('[Admin Vendor PATCH] User table insert error:', userError);
-            // Rollback auth user creation
-            await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
-            return apiError('Failed to create user record', 500);
+          let newUser;
+          
+          if (existingUser) {
+            console.log('[Admin Vendor PATCH] User record already exists, updating role to vendor');
+            // Update existing user to vendor role
+            const { data: updatedUser, error: updateError } = await supabaseAdmin
+              .from('users')
+              .update({ role: 'vendor' })
+              .eq('id', authUserId)
+              .select('id, email, full_name')
+              .single();
+              
+            if (updateError) {
+              console.error('[Admin Vendor PATCH] User update error:', updateError);
+              return apiError(`Failed to update user record: ${updateError.message}`, 500, 'USER_UPDATE_ERROR');
+            }
+            
+            newUser = updatedUser;
+          } else {
+            // Create user record in users table
+            console.log('[Admin Vendor PATCH] Creating user record in users table...');
+            const { data: createdUser, error: userError } = await supabaseAdmin
+              .from('users')
+              .insert({
+                id: authUserId,
+                email: vendor.email,
+                full_name: `${metadata.first_name} ${metadata.last_name}`,
+                phone: vendor.phone,
+                role: 'vendor',
+              })
+              .select('id, email, full_name')
+              .single();
+
+            if (userError) {
+              console.error('[Admin Vendor PATCH] User table insert error:', userError);
+              // Rollback auth user creation only if we just created it
+              if (!existingAuthUsers || existingAuthUsers.length === 0) {
+                await supabaseAdmin.auth.admin.deleteUser(authUserId);
+              }
+              return apiError(`Failed to create user record: ${userError.message}`, 500, 'USER_INSERT_ERROR');
+            }
+            
+            console.log('[Admin Vendor PATCH] User record created:', createdUser.id);
+            newUser = createdUser;
           }
 
           // Link vendor to new user
@@ -123,6 +222,7 @@ export async function PATCH(
             dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/vendor/dashboard`,
           });
         } else if (vendor.user_id) {
+          console.log('[Admin Vendor PATCH] Existing vendor - updating role');
           // Existing flow - update user role to vendor
           await supabaseAdmin
             .from('users')
@@ -136,6 +236,10 @@ export async function PATCH(
               dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/vendor/dashboard`,
             });
           }
+        } else {
+          // No user_id and no metadata - invalid state
+          console.error('[Admin Vendor PATCH] Incomplete application - no user_id and no metadata');
+          return apiError('Vendor application is incomplete. Missing user information.', 400, 'INCOMPLETE_APPLICATION');
         }
         break;
 
@@ -194,6 +298,7 @@ export async function PATCH(
     }
 
     // Update vendor
+    console.log('[Admin Vendor PATCH] Updating vendor record with data:', updateData);
     const { data: updated, error } = await supabaseAdmin
       .from('vendors')
       .update(updateData)
@@ -205,18 +310,23 @@ export async function PATCH(
       console.error('[Admin Vendor PATCH] Update error:', error);
       return apiError('Failed to update vendor', 500);
     }
+    
+    console.log('[Admin Vendor PATCH] Vendor updated successfully');
 
     // Send email notification
     if (emailTemplate) {
+      console.log('[Admin Vendor PATCH] Sending email notification...');
       const recipientEmail = vendor.email || vendorUser?.email;
       if (recipientEmail) {
         await sendEmail({
           to: recipientEmail,
           ...emailTemplate,
         });
+        console.log('[Admin Vendor PATCH] Email sent to:', recipientEmail);
       }
     }
 
+    console.log('[Admin Vendor PATCH] Request completed successfully');
     return apiSuccess(updated, `Vendor ${action}d successfully`);
   } catch (err) {
     console.error('[Admin Vendor PATCH] Exception:', err);

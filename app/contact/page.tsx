@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, Clock, Send, MessageSquare, Facebook, Instagram, Twitter } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, Send, MessageSquare, Facebook, Instagram, Youtube } from "lucide-react";
 
 export default function ContactPage() {
     return (
@@ -19,7 +19,7 @@ export default function ContactPage() {
                         </div>
                         <h3 className="font-bold text-gray-900 mb-1">Call Us</h3>
                         <p className="text-sm text-gray-500 mb-2">Mon – Fri, 9am – 6pm PKT</p>
-                        <a href="tel:+92300000000" className="text-virsa-primary font-bold text-sm hover:underline">+92 300 000 0000</a>
+                        <a href="tel:+923185196832" className="text-virsa-primary font-bold text-sm hover:underline">+92 318 5196832</a>
                     </div>
 
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -28,7 +28,7 @@ export default function ContactPage() {
                         </div>
                         <h3 className="font-bold text-gray-900 mb-1">Email Us</h3>
                         <p className="text-sm text-gray-500 mb-2">We&apos;ll reply within 24 hours</p>
-                        <a href="mailto:support@virsasharedbypakistan.com" className="text-virsa-primary font-bold text-sm hover:underline">support@virsasharedbypakistan.com</a>
+                        <a href="mailto:virsasharedbypakistan@gmail.com" className="text-virsa-primary font-bold text-sm hover:underline">virsasharedbypakistan@gmail.com</a>
                     </div>
 
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -64,14 +64,19 @@ export default function ContactPage() {
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                         <h3 className="font-bold text-gray-900 mb-4">Follow Us</h3>
                         <div className="flex gap-3">
-                            <a href="#" className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:bg-blue-700 transition-colors">
+                            <a href="https://www.facebook.com/share/1DV1zNxTVk/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:bg-blue-700 transition-colors">
                                 <Facebook className="w-5 h-5" />
                             </a>
-                            <a href="#" className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-white hover:opacity-90 transition-opacity">
+                            <a href="https://www.instagram.com/virsabypakistan" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center text-white hover:opacity-90 transition-opacity">
                                 <Instagram className="w-5 h-5" />
                             </a>
-                            <a href="#" className="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center text-white hover:bg-sky-600 transition-colors">
-                                <Twitter className="w-5 h-5" />
+                            <a href="https://www.tiktok.com/@virsa_pk_official" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-black flex items-center justify-center text-white hover:bg-gray-800 transition-colors">
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                                </svg>
+                            </a>
+                            <a href="https://youtube.com/@virsa-official" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white hover:bg-red-700 transition-colors">
+                                <Youtube className="w-5 h-5" />
                             </a>
                         </div>
                     </div>

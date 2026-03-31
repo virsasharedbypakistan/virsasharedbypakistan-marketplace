@@ -96,14 +96,24 @@ export default function AdminVendorsPage() {
                 body: JSON.stringify({ action: "approve" })
             });
 
+            const data = await res.json();
+            console.log('Approve response:', { status: res.status, data });
+
             if (res.ok) {
                 const v = vendors.find(v => v.id === id);
                 setVendors(prev => prev.map(v => v.id === id ? { ...v, status: "Active" } : v));
                 setApproveConfirm(null); setMenuOpen(null);
                 showToast(`${v?.name} has been approved.`);
+            } else {
+                setApproveConfirm(null);
+                const errorMsg = data.error || data.message || "Failed to approve vendor. Please try again.";
+                console.error('Approve error:', errorMsg);
+                alert(errorMsg);
             }
         } catch (error) {
             console.error("Failed to approve vendor:", error);
+            setApproveConfirm(null);
+            alert("Failed to approve vendor. Please try again.");
         }
     };
 
