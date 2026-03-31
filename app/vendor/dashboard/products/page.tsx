@@ -27,7 +27,7 @@ const statusStyle = (s: string) => {
 
 type FormState = { 
     name: string; 
-    category: string; 
+    category_id: string; 
     status: Product["status"]; 
     stock: string; 
     price: string; 
@@ -37,7 +37,7 @@ type FormState = {
 };
 const emptyForm: FormState = { 
     name: "", 
-    category: "", 
+    category_id: "", 
     status: "Active", 
     stock: "", 
     price: "", 
@@ -48,6 +48,7 @@ const emptyForm: FormState = {
 
 export default function VendorProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [modal, setModal] = useState<{ open: boolean; product: Product | null }>({ open: false, product: null });
@@ -58,7 +59,20 @@ export default function VendorProductsPage() {
 
     useEffect(() => {
         fetchProducts();
+        fetchCategories();
     }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch("/api/categories");
+            if (response.ok) {
+                const result = await response.json();
+                setCategories(result.data || []);
+            }
+        } catch (error) {
+            console.error("Failed to fetch categories:", error);
+        }
+    };
 
     const fetchProducts = async () => {
         try {
@@ -93,7 +107,7 @@ export default function VendorProductsPage() {
     const openEdit = (p: Product) => {
         setForm({ 
             name: p.name, 
-            category: p.category, 
+            category_id: "", // Will need to fetch category_id from product
             status: p.status, 
             stock: String(p.stock), 
             price: String(p.price), 
@@ -178,6 +192,10 @@ export default function VendorProductsPage() {
             alert('Please add at least one product image');
             return;
         }
+        if (!form.category_id) {
+            alert('Please select a category');
+            return;
+        }
         
         setUploading(true);
         
@@ -200,7 +218,8 @@ export default function VendorProductsPage() {
                         price: Number(form.price),
                         stock: Number(form.stock),
                         status: form.status.toLowerCase(),
-                        images: finalImageUrls
+                        images: finalImageUrls,
+                        category_id: form.category_id
                     })
                 });
 
@@ -223,7 +242,7 @@ export default function VendorProductsPage() {
                         stock: Number(form.stock),
                         status: form.status.toLowerCase(),
                         images: finalImageUrls,
-                        category_id: 1 // Default category
+                        category_id: form.category_id
                     })
                 });
 
@@ -475,14 +494,17 @@ export default function VendorProductsPage() {
                             </div>
 
                             <div>
-                                <label className="text-sm font-bold text-gray-700 block mb-1.5">Category</label>
-                                <input
-                                    type="text"
-                                    value={form.category}
-                                    onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                                    placeholder="e.g. Textiles > Shawls"
+                                <label className="text-sm font-bold text-gray-700 block mb-1.5">Category *</label>
+                                <select
+                                    value={form.category_id}
+                                    onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}
                                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary transition-all"
-                                />
+                                >
+                                    <option value="">Select a category</option>
+                                    {categories.map(cat => (
+                                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -531,7 +553,7 @@ export default function VendorProductsPage() {
                                 </button>
                                 <button
                                     onClick={handleSave}
-                                    disabled={!form.name.trim() || form.images.length === 0 || uploading}
+                                    disabled={!form.name.trim() || form.images.length === 0 || !form.category_id || uploading}
                                     className="flex-1 py-3 rounded-xl bg-virsa-primary text-white font-bold hover:bg-virsa-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {uploading ? 'Uploading...' : modal.product ? "Save Changes" : "Add Product"}
