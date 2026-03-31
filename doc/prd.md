@@ -336,3 +336,166 @@ CI/CD: GitHub Actions → Vercel auto-deploy on push to `main`
 - **Phase 2** — Backend API + DB integration
 - **Phase 3** — Payment gateway integration
 - **Phase 4** — Mobile Apps
+
+
+---
+
+# 13. Recent Implementations (Session: 2026-03-31)
+
+## 13.1 Vendor Registration Enhancements
+
+### Document Upload System
+- **CNIC Front & Back Upload**: Vendors must now upload both sides of their CNIC (front with photo, back with address)
+- **Store Logo Upload**: Required 200x200px square logo for store branding
+- **Store Banner Upload**: Required 1200x400px wide banner for store page header
+- **File Storage**: All uploads stored in Supabase Storage `vendor-documents` bucket
+  - Allowed types: `image/*`, `application/pdf`
+  - Max file size: 5MB
+  - Public access enabled for display
+- **Filename Convention**: 
+  - `logo_[timestamp]_[random].[ext]`
+  - `banner_[timestamp]_[random].[ext]`
+  - `cnic_front_[timestamp]_[random].[ext]`
+  - `cnic_back_[timestamp]_[random].[ext]`
+
+### Vendor Application API Updates
+- **Route**: `/api/auth/vendor-application`
+- **New Required Fields**:
+  - `logo_url`: Store logo URL (required)
+  - `banner_url`: Store banner URL (required)
+  - `cnic_front_url`: CNIC front side URL (required)
+  - `cnic_back_url`: CNIC back side URL (required)
+- **Storage**: Logo and banner stored in `vendors` table, CNIC URLs stored in `metadata` JSONB column
+
+### Upload API Enhancement
+- **Route**: `/api/upload/cnic`
+- **New Parameter**: `type` - Specifies document type (logo, banner, cnic-front, cnic-back)
+- **Functionality**: Generates descriptive filenames based on document type for better organization
+
+## 13.2 Admin Application Review Enhancements
+
+### Admin Applications Page Updates
+- **Route**: `/admin/dashboard/applications`
+- **New Display Features**:
+  - Store branding preview section showing logo and banner with proper aspect ratios
+  - Separate CNIC front and back document sections with labels
+  - View and download buttons for each document
+  - Clear indicators for missing documents
+  - Proper image previews with Next.js Image component
+
+### Admin Dashboard Quick Review Modal
+- **Route**: `/admin/dashboard`
+- **Update**: Simplified vendor documents modal
+  - Removed hardcoded document list (was showing 4 fake document types)
+  - Added informational notice explaining only CNIC is collected
+  - Added link to full applications page for detailed review
+  - Kept quick approve/reject actions
+
+## 13.3 Vendor Status Filtering
+
+### Products & Deals Filtering
+- **Implementation**: Only products and deals from `approved` vendors are shown on public pages
+- **Affected Routes**:
+  - `/api/products` - Filters by `vendors.status = 'approved'`
+  - `/api/products/[id]` - Filters by `vendors.status = 'approved'`
+  - `/api/deals` - Filters by `vendors.status = 'approved'`
+  - `/api/deals/[id]` - Filters by `vendors.status = 'approved'`
+- **Stores Page**: `/vendors` - Only shows approved vendors
+
+### Admin Vendor Status Display Fix
+- **Issue**: Admin dashboard was checking for status `"active"` but database uses `"approved"`
+- **Fix**: Updated status mapping to correctly display vendor statuses
+  - Database: `"approved"`, `"pending"`, `"suspended"`, `"rejected"`
+  - Display: `"Active"`, `"Pending"`, `"Suspended"`, `"Rejected"`
+- **Action Handlers**: Updated to use proper action-based API calls instead of direct status updates
+
+## 13.4 Vendor Deletion System
+
+### Enhanced Deletion Logic
+- **Route**: `/api/admin/vendors/[id]` (DELETE method)
+- **Constraint Handling**:
+  - Checks for order items (RESTRICT constraint) - blocks deletion if any exist
+  - Manually deletes records with NO ACTION constraints:
+    - Deals
+    - Commission logs
+    - Earnings snapshots
+    - Withdrawal requests
+  - Allows CASCADE deletion for products, cart items, bank details
+- **User Account Cleanup**: Deletes vendor's Supabase Auth account and user record
+- **Error Handling**: User-friendly error messages for constraint violations
+- **UI Updates**: 
+  - Delete confirmation modal with warning about order history preservation
+  - Displays API error messages to admin
+  - Fixed dropdown menu positioning to prevent container overflow
+
+## 13.5 Vendor Orders Management
+
+### Status Update Restrictions
+- **Route**: `/vendor/dashboard/orders`
+- **Implementation**: "Update Status" button is hidden when order status is "Delivered"
+- **Rationale**: Prevents vendors from modifying completed orders
+
+## 13.6 Domain Configuration Updates
+
+### Domain Standardization
+- **Old Domain**: `virsa.pk`
+- **New Domain**: `virsasharedbypakistan.com`
+- **Updated Locations**:
+  - Vendor registration store URL prefix
+  - Vendor settings store URL prefix
+  - Contact page support email
+- **Environment Variables**: All configured in `.env.local` with proper domain references
+
+## 13.7 Storage Bucket Configuration
+
+### Vendor Documents Bucket
+- **Bucket Name**: `vendor-documents`
+- **Configuration**:
+  - Public access: Enabled
+  - File size limit: 5MB (5,242,880 bytes)
+  - Allowed MIME types: `image/*`, `application/pdf`
+  - Created: 2026-03-31
+- **Purpose**: Stores all vendor application documents (logos, banners, CNIC documents)
+
+## 13.8 TypeScript Fixes
+
+### Compilation Errors Resolved
+1. **Admin Applications Page**: Added missing `Image` import from `next/image`
+2. **Orders API**: Added explicit type annotation `any[]` for `orderItems` array
+
+## 13.9 Data Cleanup
+
+### Vendor Deletion
+- **Deleted**: TechHub Pakistan vendor
+- **Cleanup Performed**:
+  - 3 order items removed
+  - 3 products removed
+  - 1 deal removed
+  - Commission logs removed
+  - Earnings snapshots removed
+  - Withdrawal requests removed
+  - Bank details removed
+  - User account removed
+- **Current State**: Only ZeeLabs vendor remains (pending status)
+
+---
+
+# 14. Technical Debt & Known Issues
+
+## 14.1 Resolved Issues
+- ✅ Vendor status display mismatch (active vs approved)
+- ✅ Missing CNIC document upload in vendor registration
+- ✅ Admin applications page not showing all vendor data
+- ✅ Suspended vendor products appearing on shop page
+- ✅ Vendor dropdown menu overflow issue
+- ✅ Domain inconsistencies across the application
+- ✅ TypeScript compilation errors
+
+## 14.2 Future Improvements
+- Add image compression for uploaded files
+- Implement image cropping/resizing on upload
+- Add document verification status tracking
+- Implement vendor document expiry notifications
+- Add bulk vendor operations for admin
+- Implement vendor performance metrics dashboard
+
