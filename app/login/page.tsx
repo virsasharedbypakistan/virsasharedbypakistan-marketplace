@@ -12,6 +12,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [guestLoading, setGuestLoading] = useState(false);
     const [error, setError] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -88,6 +89,31 @@ export default function LoginPage() {
             console.error('Login exception:', err);
             setError('An unexpected error occurred');
             setLoading(false);
+        }
+    };
+
+    const handleGuestLogin = async () => {
+        setGuestLoading(true);
+        setError("");
+
+        try {
+            const res = await fetch("/api/auth/guest", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                setError(data.error || "Failed to start guest session");
+                return;
+            }
+
+            router.push("/products");
+        } catch (err) {
+            console.error("Guest login error:", err);
+            setError("Failed to start guest session");
+        } finally {
+            setGuestLoading(false);
         }
     };
 
@@ -179,13 +205,21 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    <div>
+                    <div className="space-y-3">
                         <button
                             type="submit"
-                            disabled={loading}
+                            disabled={loading || guestLoading}
                             className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-virsa-primary hover:bg-virsa-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-virsa-primary transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'Signing in...' : 'Sign in'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleGuestLogin}
+                            disabled={loading || guestLoading}
+                            className="group relative w-full flex justify-center py-3.5 px-4 border border-gray-200 text-sm font-bold rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-virsa-primary transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {guestLoading ? 'Starting guest session...' : 'Continue as Guest'}
                         </button>
                     </div>
                 </form>
