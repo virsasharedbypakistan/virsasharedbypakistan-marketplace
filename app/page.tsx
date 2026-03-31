@@ -60,7 +60,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       {/* Hero Banner */}
       <section className="relative bg-virsa-primary text-white overflow-hidden">
-        <Image src="/hero_banner.png" alt="Virsa Marketplace" fill className="object-cover object-center" priority quality={90} />
+        <Image src="/hero_banner.jpeg" alt="Virsa Marketplace" fill className="object-cover object-center" priority quality={90} />
         <div className="absolute inset-0 bg-gradient-to-r from-virsa-primary/90 via-virsa-primary/70 to-virsa-primary/40 z-10"></div>
 
         <div className="container mx-auto px-4 py-28 md:py-40 relative z-20">
