@@ -12,6 +12,7 @@ type Product = {
     stock: number;
     price: number;
     image: string;
+    is_featured: boolean;
 };
 
 const PRODUCT_IMAGES = ["/images/products/product1.jpg", "/images/products/product2.jpg"];
@@ -87,7 +88,8 @@ export default function VendorProductsPage() {
                     status: product.status === "active" ? "Active" : product.status === "draft" ? "Draft" : "Hidden",
                     stock: product.stock,
                     price: product.price,
-                    image: product.images?.[0] || PRODUCT_IMAGES[0]
+                    image: product.images?.[0] || PRODUCT_IMAGES[0],
+                    is_featured: product.is_featured || false
                 }));
                 setProducts(formattedProducts);
             }
@@ -281,7 +283,8 @@ export default function VendorProductsPage() {
         const product = products.find(p => p.id === id);
         if (!product) return;
 
-        const newStatus = product.status === "Active" ? "hidden" : "active";
+        // Use 'draft' instead of 'hidden' since that's what the API accepts
+        const newStatus = product.status === "Active" ? "draft" : "active";
         try {
             const response = await fetch(`/api/products/${id}`, {
                 method: "PATCH",
@@ -291,9 +294,13 @@ export default function VendorProductsPage() {
 
             if (response.ok) {
                 setProducts(prev => prev.map(p => p.id === id ? { ...p, status: newStatus === "active" ? "Active" : "Hidden" } : p));
+            } else {
+                const error = await response.json();
+                alert(error.error || 'Failed to update product status');
             }
         } catch (error) {
             console.error("Failed to toggle status:", error);
+            alert('Failed to update product status');
         }
     };
 

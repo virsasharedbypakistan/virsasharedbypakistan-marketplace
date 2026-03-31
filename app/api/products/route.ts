@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
     const minRating = searchParams.get('min_rating');
     const sort = searchParams.get('sort') || 'newest';
     const featured = searchParams.get('featured');
+    const homepage = searchParams.get('homepage');
     const onSale = searchParams.get('on_sale');
 
     // Build query - only show products from approved vendors
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
       .from('products')
       .select(
         `id, name, slug, short_description, price, sale_price, stock, images, thumbnail_url,
-         status, is_featured, average_rating, total_reviews, total_sold, created_at,
+         status, is_featured, show_on_homepage, average_rating, total_reviews, total_sold, created_at,
          vendors!inner(id, store_name, logo_url, average_rating, status),
          categories(id, name, slug)`,
         { count: 'exact' }
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
     if (maxPrice) query = query.lte('price', parseFloat(maxPrice));
     if (minRating) query = query.gte('average_rating', parseFloat(minRating));
     if (featured === 'true') query = query.eq('is_featured', true);
+    if (homepage === 'true') query = query.eq('show_on_homepage', true);
     if (onSale === 'true') query = query.not('sale_price', 'is', null);
 
     // Full-text search

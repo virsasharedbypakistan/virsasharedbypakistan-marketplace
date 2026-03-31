@@ -10,17 +10,29 @@ export async function GET(request: NextRequest) {
     const { page, limit } = getPagination(searchParams);
     const search = searchParams.get('search');
     const sort = searchParams.get('sort') || 'rating';
+    const featured = searchParams.get('featured');
+    const homepage = searchParams.get('homepage');
 
     let query = supabaseAdmin
       .from('vendors')
       .select(
         `
         id, store_name, store_slug, description, logo_url, banner_url,
-        phone, email, average_rating, total_reviews, total_sales, created_at
+        phone, email, average_rating, total_reviews, total_sales, created_at, is_featured, show_on_homepage
       `,
         { count: 'exact' }
       )
       .eq('status', 'approved');
+
+    // Featured filter
+    if (featured === 'true') {
+      query = query.eq('is_featured', true);
+    }
+
+    // Homepage filter
+    if (homepage === 'true') {
+      query = query.eq('show_on_homepage', true);
+    }
 
     // Search filter
     if (search) {

@@ -10,7 +10,7 @@ export default function VendorSettingsPage() {
     const [loading, setLoading] = useState(true);
 
     // Store Profile state
-    const [profile, setProfile] = useState({ name: "", email: "", description: "", url: "" });
+    const [profile, setProfile] = useState({ name: "", email: "", description: "", url: "", logoUrl: "" });
     const [profileSaved, setProfileSaved] = useState(false);
     const [vendorStatus, setVendorStatus] = useState<string>("");
 
@@ -38,16 +38,28 @@ export default function VendorSettingsPage() {
                     const vendor = result.data;
                     setProfile({
                         name: vendor.store_name || "",
-                        email: vendor.store_email || "",
-                        description: vendor.store_description || "",
-                        url: vendor.slug || ""
+                        email: vendor.email || "",
+                        description: vendor.description || "",
+                        url: vendor.store_slug || "",
+                        logoUrl: vendor.logo_url || ""
                     });
                     setVendorStatus(vendor.status || "");
+                    
+                    // Set bank details from the combined response
                     setPayout({
                         bankName: vendor.bank_name || "",
-                        accountTitle: vendor.account_title || "",
+                        accountTitle: vendor.account_holder_name || "",
                         accountNumber: vendor.account_number || "",
                         iban: vendor.iban || ""
+                    });
+                    
+                    // Set notification preferences
+                    setNotifs({
+                        newOrder: vendor.notification_new_order ?? true,
+                        orderStatus: vendor.notification_order_status ?? true,
+                        lowStock: vendor.notification_low_stock ?? true,
+                        reviews: vendor.notification_reviews ?? false,
+                        promotions: vendor.notification_promotions ?? false,
                     });
                     setNotifs({
                         newOrder: vendor.notification_new_order ?? true,
@@ -73,8 +85,8 @@ export default function VendorSettingsPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     store_name: profile.name,
-                    store_email: profile.email,
-                    store_description: profile.description,
+                    email: profile.email,
+                    description: profile.description,
                 })
             });
             
@@ -100,7 +112,7 @@ export default function VendorSettingsPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     bank_name: payout.bankName,
-                    account_title: payout.accountTitle,
+                    account_holder_name: payout.accountTitle,
                     account_number: payout.accountNumber,
                     iban: payout.iban,
                 })
@@ -221,8 +233,12 @@ export default function VendorSettingsPage() {
                                 <div>
                                     <label className="text-sm font-bold text-gray-700 block mb-3">Store Logo</label>
                                     <div className="flex items-center gap-5">
-                                        <div className="w-20 h-20 bg-virsa-light/50 border border-gray-200 rounded-2xl flex items-center justify-center text-virsa-primary font-black text-2xl">
-                                            {profile.name[0]}
+                                        <div className="w-20 h-20 bg-virsa-light/50 border border-gray-200 rounded-2xl flex items-center justify-center text-virsa-primary font-black text-2xl overflow-hidden">
+                                            {profile.logoUrl ? (
+                                                <img src={profile.logoUrl} alt={profile.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span>{profile.name[0]}</span>
+                                            )}
                                         </div>
                                         <div>
                                             <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors mb-1 block">Change Logo</button>
@@ -237,14 +253,14 @@ export default function VendorSettingsPage() {
                                             type="text" 
                                             value={profile.name} 
                                             onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} 
-                                            disabled={vendorStatus === 'active'}
+                                            disabled={vendorStatus === 'approved'}
                                             className={`w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none transition-all ${
-                                                vendorStatus === 'active' 
+                                                vendorStatus === 'approved' 
                                                     ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
                                                     : 'bg-gray-50 focus:bg-white focus:ring-2 focus:ring-virsa-primary/20 focus:border-virsa-primary'
                                             }`}
                                         />
-                                        {vendorStatus === 'active' && (
+                                        {vendorStatus === 'approved' && (
                                             <p className="text-xs text-amber-600 mt-1">Store name cannot be changed after activation</p>
                                         )}
                                     </div>

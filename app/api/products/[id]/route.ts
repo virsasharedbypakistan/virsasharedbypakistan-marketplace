@@ -145,6 +145,14 @@ export async function PUT(
   }
 }
 
+// PATCH method - same as PUT for convenience
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return PUT(request, { params });
+}
+
 // ── DELETE /api/products/[id] — Soft delete product ─────────────────
 
 export async function DELETE(

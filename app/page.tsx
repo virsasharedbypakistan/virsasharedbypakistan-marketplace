@@ -24,17 +24,31 @@ type Category = {
   product_count: number;
 };
 
+type Vendor = {
+  id: string;
+  store_name: string;
+  store_slug: string;
+  description: string | null;
+  logo_url: string | null;
+  banner_url: string | null;
+  average_rating: number;
+  total_reviews: number;
+  product_count: number;
+};
+
 export default function Home() {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [featuredVendors, setFeaturedVendors] = useState<Vendor[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsRes, categoriesRes] = await Promise.all([
-          fetch("/api/products?featured=true&limit=4"),
+        const [productsRes, categoriesRes, vendorsRes] = await Promise.all([
+          fetch("/api/products?homepage=true&limit=6"),
           fetch("/api/categories?limit=6"),
+          fetch("/api/vendors?homepage=true&limit=4"),
         ]);
 
         if (productsRes.ok) {
@@ -45,6 +59,12 @@ export default function Home() {
         if (categoriesRes.ok) {
           const data = await categoriesRes.json();
           setCategories(data.data || []);
+        }
+
+        if (vendorsRes.ok) {
+          const data = await vendorsRes.json();
+          const vendorList = data.data?.data || data.data || [];
+          setFeaturedVendors(vendorList);
         }
       } catch (error) {
         console.error("Failed to fetch homepage data:", error);
@@ -175,9 +195,9 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {loading ? (
-              Array(4).fill(0).map((_, i) => (
+              Array(6).fill(0).map((_, i) => (
                 <div key={i} className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] animate-pulse">
                   <div className="aspect-square bg-gray-200" />
                   <div className="p-5 space-y-3">
@@ -227,7 +247,76 @@ export default function Home() {
                 );
               })
             ) : (
-              <div className="col-span-4 text-center py-10 text-gray-400">No featured products available</div>
+              <div className="col-span-3 text-center py-10 text-gray-400">No featured products available</div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Stores */}
+      <section className="py-20 md:py-32 bg-gray-50/50">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">Featured Stores</h2>
+              <p className="text-gray-500 text-lg">Top-rated vendors you can trust</p>
+            </div>
+            <Link href="/vendors" className="inline-flex text-virsa-primary font-bold hover:text-virsa-primary/80 transition-colors items-center group bg-virsa-primary/5 px-6 py-3 rounded-full">
+              View All Stores <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {loading ? (
+              Array(4).fill(0).map((_, i) => (
+                <div key={i} className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] animate-pulse">
+                  <div className="h-24 bg-gray-200" />
+                  <div className="p-5 space-y-3">
+                    <div className="w-20 h-20 rounded-xl bg-gray-200 -mt-12 mb-2" />
+                    <div className="h-4 bg-gray-200 rounded" />
+                    <div className="h-3 bg-gray-200 rounded w-3/4" />
+                    <div className="h-3 bg-gray-200 rounded w-20" />
+                  </div>
+                </div>
+              ))
+            ) : featuredVendors.length > 0 ? (
+              featuredVendors.map((vendor) => (
+                <Link href={`/vendor/${vendor.id}`} key={vendor.id} className="bg-white rounded-[24px] overflow-hidden border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] transition-all duration-300 group hover:-translate-y-1">
+                  {/* Banner */}
+                  <div className="relative h-24 bg-gradient-to-r from-virsa-primary to-virsa-primary/80">
+                    {vendor.banner_url && (
+                      <Image src={vendor.banner_url} alt={vendor.store_name} fill className="object-cover" />
+                    )}
+                  </div>
+                  
+                  {/* Logo */}
+                  <div className="relative px-5 -mt-10">
+                    <div className="w-20 h-20 rounded-xl overflow-hidden border-4 border-white bg-white shadow-md">
+                      <Image src={vendor.logo_url || "/cat_electronics.png"} alt={vendor.store_name} width={80} height={80} className="object-cover" />
+                    </div>
+                  </div>
+
+                  <div className="p-5 pt-2">
+                    <h3 className="font-bold text-gray-900 text-base mb-2 group-hover:text-virsa-primary transition-colors">{vendor.store_name}</h3>
+                    <p className="text-xs text-gray-500 mb-3 line-clamp-2">{vendor.description || "Quality products from a trusted seller"}</p>
+                    
+                    <div className="flex items-center mb-3">
+                      <div className="flex text-virsa-secondary">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star key={star} className={`w-3.5 h-3.5 ${star <= Math.round(vendor.average_rating) ? "fill-current" : "text-gray-200"}`} />
+                        ))}
+                      </div>
+                      <span className="text-xs font-medium text-gray-500 ml-2">({vendor.total_reviews})</span>
+                    </div>
+
+                    <div className="pt-3 border-t border-gray-100">
+                      <span className="text-sm text-gray-600">{vendor.product_count} products</span>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-4 text-center py-10 text-gray-400">No featured stores available</div>
             )}
           </div>
         </div>

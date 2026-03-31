@@ -68,7 +68,7 @@ export default function Footer() {
                         <ul className="space-y-4">
                             <li className="flex items-start">
                                 <MapPin className="w-5 h-5 text-virsa-primary mr-3 mt-0.5" />
-                                <span className="text-gray-600 text-sm">123 Marketplace Blvd, Suite 100, Cityname, State 12345</span>
+                                <span className="text-gray-600 text-sm">Rawalpindi, Pakistan</span>
                             </li>
                             <li className="flex items-center">
                                 <Phone className="w-5 h-5 text-virsa-primary mr-3" />

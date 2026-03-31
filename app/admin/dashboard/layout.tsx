@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { CopyPlus, Store, Users, ShoppingBag, LineChart, Settings, LogOut, Bell, Search, Building2, Zap } from "lucide-react";
+import { CopyPlus, Store, Users, ShoppingBag, LineChart, Settings, LogOut, Bell, Search, Building2, Zap, Star, Sparkles } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 
 export default function AdminDashboardLayout({
@@ -16,6 +16,8 @@ export default function AdminDashboardLayout({
         { name: "All Orders", href: "/admin/dashboard/orders", icon: ShoppingBag },
         { name: "Earnings", href: "/admin/dashboard/earnings", icon: LineChart },
         { name: "Deals", href: "/admin/dashboard/deals", icon: Zap },
+        { name: "Featured Products", href: "/admin/dashboard/featured-products", icon: Star },
+        { name: "Featured Stores", href: "/admin/dashboard/featured-stores", icon: Sparkles },
         { name: "Notifications", href: "/admin/dashboard/notifications", icon: Bell },
         { name: "Settings", href: "/admin/dashboard/settings", icon: Settings },
     ];

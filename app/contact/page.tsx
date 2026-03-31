@@ -36,7 +36,7 @@ export default function ContactPage() {
                             <MapPin className="w-6 h-6" />
                         </div>
                         <h3 className="font-bold text-gray-900 mb-1">Visit Us</h3>
-                        <p className="text-sm text-gray-500">Office 42, Tech Tower, MM Alam Road, Lahore, Punjab, Pakistan</p>
+                        <p className="text-sm text-gray-500">Rawalpindi, Pakistan</p>
                     </div>
 
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
