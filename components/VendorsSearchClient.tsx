@@ -47,7 +47,7 @@ export default function VendorsSearchClient({ initialQuery = "" }: Props) {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                     type="text"
-                    placeholder="Search stores by name or description..."
+                    placeholder="Search stores by name..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-11 pr-12 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-virsa-primary focus:ring-2 focus:ring-virsa-primary/10 text-sm"

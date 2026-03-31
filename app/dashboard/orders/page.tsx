@@ -26,7 +26,8 @@ export default function CustomerOrdersPage() {
         const fetchOrders = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`/api/orders?status=${filterStatus}`);
+                const statusParam = filterStatus === "delivered" ? "completed" : filterStatus;
+                const res = await fetch(`/api/orders?status=${statusParam}`);
                 if (res.ok) {
                     const data = await res.json();
                     setOrders(data.data?.data || []);
@@ -43,7 +44,9 @@ export default function CustomerOrdersPage() {
 
     const getStatusStyle = (status: string) => {
         switch (status) {
-            case "delivered": return "bg-emerald-50 text-emerald-600 border-emerald-100";
+            case "delivered":
+            case "completed":
+                return "bg-emerald-50 text-emerald-600 border-emerald-100";
             case "shipped": return "bg-blue-50 text-blue-600 border-blue-100";
             case "processing": return "bg-amber-50 text-amber-600 border-amber-100";
             case "pending": return "bg-gray-50 text-gray-600 border-gray-100";
@@ -53,7 +56,9 @@ export default function CustomerOrdersPage() {
 
     const getStatusIcon = (status: string) => {
         switch (status) {
-            case "delivered": return <CheckCircle2 className="w-4 h-4 mr-1.5" />;
+            case "delivered":
+            case "completed":
+                return <CheckCircle2 className="w-4 h-4 mr-1.5" />;
             case "shipped": return <Truck className="w-4 h-4 mr-1.5" />;
             case "processing":
             case "pending": return <Package className="w-4 h-4 mr-1.5" />;
@@ -140,7 +145,7 @@ export default function CustomerOrdersPage() {
                                     </Link>
                                     <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold border capitalize ${getStatusStyle(order.status)}`}>
                                         {getStatusIcon(order.status)}
-                                        {order.status}
+                                        {order.status === "completed" ? "delivered" : order.status}
                                     </span>
                                 </div>
                             </div>

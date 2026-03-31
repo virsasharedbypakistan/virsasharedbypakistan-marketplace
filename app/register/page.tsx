@@ -217,9 +217,9 @@ export default function RegisterPage() {
                         />
                         <label htmlFor="terms" className="ml-2 block text-sm text-gray-700 cursor-pointer">
                             I agree to the{" "}
-                            <a href="#" className="font-medium text-virsa-primary hover:text-virsa-primary/80">
+                            <Link href="/terms" className="font-medium text-virsa-primary hover:text-virsa-primary/80">
                                 Terms & Conditions
-                            </a>
+                            </Link>
                         </label>
                     </div>
 

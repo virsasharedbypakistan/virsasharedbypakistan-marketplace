@@ -223,3 +223,109 @@ export async function PATCH(
     return apiError('Internal server error', 500);
   }
 }
+
+// ── DELETE /api/admin/vendors/[id] — Delete vendor account ──────────
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authResult = await requireRole('admin');
+    if ('error' in authResult) return authResult.error;
+    const { user } = authResult;
+
+    // Rate limit
+    const { success: allowed } = await mutationRateLimit.limit(user.id);
+    if (!allowed) {
+      return apiError('Too many requests. Try again later.', 429, 'RATE_LIMITED');
+    }
+
+    const { id } = await params;
+
+    // Get vendor with user info
+    const { data: vendor } = await supabaseAdmin
+      .from('vendors')
+      .select('id, user_id, store_name')
+      .eq('id', id)
+      .single();
+
+    if (!vendor) {
+      return apiError('Vendor not found', 404, 'VENDOR_NOT_FOUND');
+    }
+
+    // Check if vendor has any order items (RESTRICT constraint)
+    const { count: orderItemsCount } = await supabaseAdmin
+      .from('order_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('vendor_id', id);
+
+    if (orderItemsCount && orderItemsCount > 0) {
+      return apiError(
+        'Cannot delete vendor with order history. Orders must be preserved for record keeping.',
+        400,
+        'HAS_ORDER_HISTORY'
+      );
+    }
+
+    // Delete related records that have NO ACTION constraint (must be deleted manually)
+    
+    // Delete deals
+    await supabaseAdmin
+      .from('deals')
+      .delete()
+      .eq('vendor_id', id);
+
+    // Delete commission logs
+    await supabaseAdmin
+      .from('commission_logs')
+      .delete()
+      .eq('vendor_id', id);
+
+    // Delete earnings snapshots
+    await supabaseAdmin
+      .from('earnings_snapshots')
+      .delete()
+      .eq('vendor_id', id);
+
+    // Delete withdrawal requests
+    await supabaseAdmin
+      .from('withdrawal_requests')
+      .delete()
+      .eq('vendor_id', id);
+
+    // Products, cart_items, and vendor_bank_details will CASCADE automatically
+
+    // Delete vendor record (this will cascade to products, cart_items, bank_details)
+    const { error: deleteError } = await supabaseAdmin
+      .from('vendors')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('[Admin Vendor DELETE] Delete error:', deleteError);
+      return apiError('Failed to delete vendor', 500);
+    }
+
+    // If vendor has a user account, delete it from auth
+    if (vendor.user_id) {
+      try {
+        await supabaseAdmin.auth.admin.deleteUser(vendor.user_id);
+        
+        // Delete user record
+        await supabaseAdmin
+          .from('users')
+          .delete()
+          .eq('id', vendor.user_id);
+      } catch (authError) {
+        console.error('[Admin Vendor DELETE] Auth delete error:', authError);
+        // Continue even if auth deletion fails
+      }
+    }
+
+    return apiSuccess(null, 'Vendor deleted successfully');
+  } catch (err) {
+    console.error('[Admin Vendor DELETE] Exception:', err);
+    return apiError('Internal server error', 500);
+  }
+}

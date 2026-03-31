@@ -260,7 +260,7 @@ export default function VendorSettingsPage() {
                                 <div>
                                     <label className="text-sm font-bold text-gray-700 block mb-1.5">Store URL</label>
                                     <div className="flex border border-gray-200 rounded-xl overflow-hidden focus-within:border-virsa-primary focus-within:ring-2 focus-within:ring-virsa-primary/20 transition-all">
-                                        <div className="bg-gray-50 px-4 py-2.5 text-gray-500 text-sm flex items-center border-r border-gray-200 whitespace-nowrap">virsa.pk/store/</div>
+                                        <div className="bg-gray-50 px-4 py-2.5 text-gray-500 text-sm flex items-center border-r border-gray-200 whitespace-nowrap">virsasharedbypakistan.com/store/</div>
                                         <input type="text" value={profile.url} onChange={e => setProfile(p => ({ ...p, url: e.target.value }))} className="w-full px-4 py-2.5 border-none focus:outline-none text-sm bg-white" />
                                     </div>
                                 </div>

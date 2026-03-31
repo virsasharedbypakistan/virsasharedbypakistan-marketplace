@@ -18,12 +18,15 @@ export async function GET(
         *,
         products!inner(
           id, name, slug, description, thumbnail_url, 
-          price, stock, category_id, vendor_id
+          price, stock, category_id, vendor_id, status
         ),
-        vendors!inner(id, store_name, logo_url, average_rating)
+        vendors!inner(id, store_name, logo_url, average_rating, status)
       `
       )
       .eq('id', id)
+      .eq('is_active', true)
+      .eq('products.status', 'active')
+      .eq('vendors.status', 'approved')
       .single();
 
     if (error || !deal) {

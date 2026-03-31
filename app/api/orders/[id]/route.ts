@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { apiSuccess, apiError, requireAuth, getVendorForUser } from '@/lib/api-helpers';
+import { apiSuccess, apiError, requireAuth, requireNonGuest, getVendorForUser } from '@/lib/api-helpers';
 import { mutationRateLimit } from '@/lib/ratelimit';
 import { sendEmail, orderStatusEmail } from '@/lib/email';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 
@@ -91,7 +91,7 @@ export async function GET(
 // ── PATCH /api/orders/[id] — Update order status ────────────────────
 
 const updateStatusSchema = z.object({
-  status: z.enum(['processing', 'shipped', 'completed', 'cancelled']),
+  status: z.enum(['processing', 'shipped', 'completed', 'cancelled', 'delivered']),
   tracking_number: z.string().max(100).optional(),
 });
 
@@ -100,7 +100,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 
@@ -120,6 +120,7 @@ export async function PATCH(
     }
 
     const { status, tracking_number } = parsed.data;
+    const normalizedStatus = status === 'delivered' ? 'completed' : status;
 
     // Get order
     const { data: order } = await supabaseAdmin
@@ -140,10 +141,10 @@ export async function PATCH(
       }
 
       // Vendor can only transition: pending→processing, processing→shipped
-      if (order.status === 'pending' && status !== 'processing') {
+      if (order.status === 'pending' && normalizedStatus !== 'processing') {
         return apiError('Vendors can only mark pending orders as processing', 403);
       }
-      if (order.status === 'processing' && status !== 'shipped') {
+      if (order.status === 'processing' && normalizedStatus !== 'shipped') {
         return apiError('Vendors can only mark processing orders as shipped', 403);
       }
       if (order.status !== 'pending' && order.status !== 'processing') {
@@ -151,8 +152,8 @@ export async function PATCH(
       }
 
       // Update vendor's order items
-      const updateData: Record<string, unknown> = { item_status: status };
-      if (status === 'shipped') {
+      const updateData: Record<string, unknown> = { item_status: normalizedStatus };
+      if (normalizedStatus === 'shipped') {
         updateData.shipped_at = new Date().toISOString();
         if (tracking_number) {
           updateData.tracking_number = tracking_number;
@@ -167,18 +168,18 @@ export async function PATCH(
     } else if (user.role === 'admin') {
       // Admin can do any transition
       const updateData: Record<string, unknown> = {};
-      if (status === 'shipped' && tracking_number) {
+      if (normalizedStatus === 'shipped' && tracking_number) {
         updateData.tracking_number = tracking_number;
         updateData.shipped_at = new Date().toISOString();
       }
-      if (status === 'completed') {
+      if (normalizedStatus === 'completed') {
         updateData.completed_at = new Date().toISOString();
       }
 
       // Update all order items
       await supabaseAdmin
         .from('order_items')
-        .update({ item_status: status, ...updateData })
+        .update({ item_status: normalizedStatus, ...updateData })
         .eq('order_id', id);
     } else {
       return apiError('Forbidden — insufficient permissions', 403, 'FORBIDDEN');
@@ -187,7 +188,7 @@ export async function PATCH(
     // Update main order status
     const { data: updated, error } = await supabaseAdmin
       .from('orders')
-      .update({ status })
+      .update({ status: normalizedStatus })
       .eq('id', id)
       .select('id, order_number, status')
       .single();

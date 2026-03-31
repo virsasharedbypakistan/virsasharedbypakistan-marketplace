@@ -108,6 +108,50 @@ export function orderStatusEmail(data: {
   };
 }
 
+export function vendorOrderEmail(data: {
+  vendorName: string;
+  orderNumber: string;
+  items: Array<{ name: string; quantity: number; subtotal: number }>;
+  orderUrl: string;
+}) {
+  const itemsHtml = data.items
+    .map(
+      (item) => `
+        <tr>
+          <td style="padding: 8px 0;">${item.name}</td>
+          <td style="padding: 8px 0; text-align: center;">${item.quantity}</td>
+          <td style="padding: 8px 0; text-align: right;">PKR ${item.subtotal.toFixed(2)}</td>
+        </tr>
+      `
+    )
+    .join('');
+
+  return {
+    subject: `New Order - ${data.orderNumber}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>New order received</h2>
+        <p>Hi ${data.vendorName},</p>
+        <p>You have received a new order: <strong>${data.orderNumber}</strong>.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <thead>
+            <tr>
+              <th style="text-align: left; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Item</th>
+              <th style="text-align: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Qty</th>
+              <th style="text-align: right; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        <a href="${data.orderUrl}" style="display: inline-block; background: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0;">View Order</a>
+        <p style="margin-top: 24px; color: #6b7280; font-size: 14px;">Please prepare the items for fulfillment.</p>
+      </div>
+    `,
+  };
+}
+
 export function vendorApprovedEmail(data: {
   vendorName: string;
   storeName: string;

@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const type = formData.get('type') as string || 'document'; // logo, banner, cnic-front, cnic-back, or document
 
     if (!file) {
       return apiError('No file provided', 400, 'NO_FILE');
@@ -23,11 +24,31 @@ export async function POST(request: NextRequest) {
       return apiError('File size exceeds 5MB limit', 400, 'FILE_TOO_LARGE');
     }
 
-    // Generate unique filename
+    // Generate unique filename based on type
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const fileExt = file.name.split('.').pop();
-    const fileName = `cnic_${timestamp}_${randomString}.${fileExt}`;
+    
+    // Create descriptive filename based on document type
+    let prefix = 'document';
+    switch (type) {
+      case 'logo':
+        prefix = 'logo';
+        break;
+      case 'banner':
+        prefix = 'banner';
+        break;
+      case 'cnic-front':
+        prefix = 'cnic_front';
+        break;
+      case 'cnic-back':
+        prefix = 'cnic_back';
+        break;
+      default:
+        prefix = 'cnic'; // backward compatibility
+    }
+    
+    const fileName = `${prefix}_${timestamp}_${randomString}.${fileExt}`;
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();
@@ -43,7 +64,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
-      console.error('[Upload CNIC] Storage error:', error);
+      console.error('[Upload Document] Storage error:', error);
       return apiError('Failed to upload file', 500);
     }
 
@@ -57,7 +78,7 @@ export async function POST(request: NextRequest) {
       fileName: fileName,
     }, 'File uploaded successfully');
   } catch (err) {
-    console.error('[Upload CNIC] Exception:', err);
+    console.error('[Upload Document] Exception:', err);
     return apiError('Internal server error', 500);
   }
 }

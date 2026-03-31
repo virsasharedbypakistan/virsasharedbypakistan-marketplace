@@ -54,7 +54,7 @@ export default function AdminVendorsPage() {
                     name: v.store_name,
                     owner: v.users?.full_name || "N/A",
                     email: v.email,
-                    status: v.status === "active" ? "Active" : v.status === "pending" ? "Pending" : "Suspended",
+                    status: v.status === "approved" ? "Active" : v.status === "pending" ? "Pending" : "Suspended",
                     products: v.product_count || 0,
                     revenue: `Rs ${(v.total_revenue || 0).toLocaleString()}`,
                     joined: new Date(v.created_at).toLocaleDateString(),
@@ -93,7 +93,7 @@ export default function AdminVendorsPage() {
             const res = await fetch(`/api/admin/vendors/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: "active" })
+                body: JSON.stringify({ action: "approve" })
             });
 
             if (res.ok) {
@@ -112,7 +112,7 @@ export default function AdminVendorsPage() {
             const res = await fetch(`/api/admin/vendors/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: "rejected" })
+                body: JSON.stringify({ action: "reject" })
             });
 
             if (res.ok) {
@@ -127,13 +127,13 @@ export default function AdminVendorsPage() {
 
     const handleSuspend = async (id: string) => {
         const v = vendors.find(v => v.id === id);
-        const newStatus = v?.status === "Suspended" ? "active" : "suspended";
+        const newStatus = v?.status === "Suspended" ? "approved" : "suspended";
         
         try {
             const res = await fetch(`/api/admin/vendors/${id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ action: v?.status === "Suspended" ? "activate" : "suspend" })
             });
 
             if (res.ok) {
@@ -152,13 +152,21 @@ export default function AdminVendorsPage() {
                 method: "DELETE"
             });
 
+            const data = await res.json();
+
             if (res.ok) {
                 setVendors(prev => prev.filter(v => v.id !== id));
                 setDeleteConfirm(null);
                 showToast("Vendor account deleted successfully.");
+            } else {
+                // Show error message from API
+                setDeleteConfirm(null);
+                alert(data.error || data.message || "Failed to delete vendor. Please try again.");
             }
         } catch (error) {
             console.error("Failed to delete vendor:", error);
+            setDeleteConfirm(null);
+            alert("Failed to delete vendor. Please try again.");
         }
     };
 
@@ -268,20 +276,33 @@ export default function AdminVendorsPage() {
                                             </div>
                                         ) : (
                                             <div className="relative" onClick={e => e.stopPropagation()}>
-                                                <button onClick={() => setMenuOpen(menuOpen === vendor.id ? null : vendor.id)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-md transition-colors">
+                                                <button 
+                                                    id={`menu-btn-${vendor.id}`}
+                                                    onClick={() => setMenuOpen(menuOpen === vendor.id ? null : vendor.id)} 
+                                                    className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-md transition-colors"
+                                                >
                                                     <MoreHorizontal className="w-5 h-5" />
                                                 </button>
                                                 {menuOpen === vendor.id && (
-                                                    <div className="absolute right-0 top-9 bg-white border border-gray-100 rounded-xl shadow-xl z-20 py-1 w-44">
-                                                        <button onClick={() => { setViewModal({ open: true, vendor }); setMenuOpen(null); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                                                            <Eye className="w-4 h-4 text-gray-400" /> View Details
-                                                        </button>
-                                                        <button onClick={() => { setSuspendConfirm(vendor); setMenuOpen(null); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-gray-50 flex items-center gap-2 ${vendor.status === "Suspended" ? "text-emerald-600" : "text-amber-600"}`}>
-                                                            <Ban className="w-4 h-4" /> {vendor.status === "Suspended" ? "Reactivate" : "Suspend"}
-                                                        </button>
-                                                        <button onClick={() => { setDeleteConfirm(vendor.id); setMenuOpen(null); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2">
-                                                            <Trash2 className="w-4 h-4" /> Delete
-                                                        </button>
+                                                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(null)}>
+                                                        <div 
+                                                            className="absolute bg-white border border-gray-100 rounded-xl shadow-xl py-1 w-44"
+                                                            style={{
+                                                                top: `${(document.getElementById(`menu-btn-${vendor.id}`)?.getBoundingClientRect().bottom || 0) + 4}px`,
+                                                                right: `${window.innerWidth - (document.getElementById(`menu-btn-${vendor.id}`)?.getBoundingClientRect().right || 0)}px`
+                                                            }}
+                                                            onClick={e => e.stopPropagation()}
+                                                        >
+                                                            <button onClick={() => { setViewModal({ open: true, vendor }); setMenuOpen(null); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                                                                <Eye className="w-4 h-4 text-gray-400" /> View Details
+                                                            </button>
+                                                            <button onClick={() => { setSuspendConfirm(vendor); setMenuOpen(null); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-gray-50 flex items-center gap-2 ${vendor.status === "Suspended" ? "text-emerald-600" : "text-amber-600"}`}>
+                                                                <Ban className="w-4 h-4" /> {vendor.status === "Suspended" ? "Reactivate" : "Suspend"}
+                                                            </button>
+                                                            <button onClick={() => { setDeleteConfirm(vendor.id); setMenuOpen(null); }} className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2">
+                                                                <Trash2 className="w-4 h-4" /> Delete
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
@@ -394,11 +415,17 @@ export default function AdminVendorsPage() {
             {/* Delete Confirm */}
             {deleteConfirm !== null && vendorToDelete && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)}>
-                    <div className="bg-white rounded-[28px] shadow-2xl w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                    <div className="bg-white rounded-[28px] shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="p-6 text-center">
                             <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4"><Trash2 className="w-6 h-6 text-red-500" /></div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Vendor?</h3>
-                            <p className="text-sm text-gray-500 mb-6">Permanently delete <strong>"{vendorToDelete.name}"</strong> and all their data?</p>
+                            <p className="text-sm text-gray-500 mb-4">Permanently delete <strong>"{vendorToDelete.name}"</strong> and all their data?</p>
+                            
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6 text-left">
+                                <p className="text-xs font-bold text-amber-800 mb-1">⚠️ Important</p>
+                                <p className="text-xs text-amber-700">Vendors with order history cannot be deleted to preserve records. Use "Suspend" instead if needed.</p>
+                            </div>
+
                             <div className="flex gap-3">
                                 <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors">Cancel</button>
                                 <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">Delete</button>

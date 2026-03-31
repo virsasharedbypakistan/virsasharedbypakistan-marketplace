@@ -54,6 +54,12 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (isProtected && user?.user_metadata?.is_guest) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
   // Add security headers
   const headers = supabaseResponse.headers;
   headers.set('X-Frame-Options', 'DENY');

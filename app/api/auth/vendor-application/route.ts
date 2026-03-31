@@ -21,6 +21,8 @@ const vendorApplicationSchema = z.object({
     .regex(/^[a-z0-9-]+$/)
     .optional(),
   store_description: z.string().max(5000).optional(),
+  logo_url: z.string().url(),
+  banner_url: z.string().url(),
   category: z.string().max(100).optional(),
   city: z.string().min(2).max(100).trim(),
   address: z.string().max(255).optional(),
@@ -36,7 +38,8 @@ const vendorApplicationSchema = z.object({
   iban: z.string().max(34).optional(),
   // CNIC
   cnic: z.string().min(13).max(15).trim(),
-  cnic_document_url: z.string().url(),
+  cnic_front_url: z.string().url(),
+  cnic_back_url: z.string().url(),
 });
 
 function generateStoreSlug(storeName: string): string {
@@ -112,16 +115,20 @@ export async function POST(request: NextRequest) {
         store_name: data.store_name,
         store_slug: slug,
         description: data.store_description || null,
+        logo_url: data.logo_url,
+        banner_url: data.banner_url,
         phone: data.phone,
         email: data.email,
         status: 'pending',
-        cnic_document_url: data.cnic_document_url || null,
+        cnic_document_url: data.cnic_front_url || null, // Store front as primary
         // Store application data in metadata
         metadata: {
           first_name: data.first_name,
           last_name: data.last_name,
           encrypted_password: encryptedPassword,
           cnic: data.cnic,
+          cnic_front_url: data.cnic_front_url,
+          cnic_back_url: data.cnic_back_url,
           city: data.city,
           category: data.category,
           address: data.address,

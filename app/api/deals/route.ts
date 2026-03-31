@@ -19,12 +19,14 @@ export async function GET(request: NextRequest) {
       .select(
         `
         *,
-        products!inner(id, name, slug, thumbnail_url, category_id, vendor_id),
-        vendors!inner(id, store_name, logo_url)
+        products!inner(id, name, slug, thumbnail_url, category_id, vendor_id, status),
+        vendors!inner(id, store_name, logo_url, status)
       `,
         { count: 'exact' }
       )
       .eq('is_active', true)
+      .eq('products.status', 'active')
+      .eq('vendors.status', 'approved')
       .lte('start_date', now)
       .gte('end_date', now)
       .order('created_at', { ascending: false });

@@ -44,19 +44,27 @@ export default function CustomerDashboardPage() {
                 const res = await fetch("/api/orders?limit=5");
                 if (res.ok) {
                     const data = await res.json();
-                    const orders = Array.isArray(data.data) ? data.data : [];
+                    const orders = Array.isArray(data.data)
+                        ? data.data
+                        : Array.isArray(data.data?.data)
+                        ? data.data.data
+                        : [];
                     setRecentOrders(orders);
 
                     // Calculate stats
                     const allOrdersRes = await fetch("/api/orders");
                     if (allOrdersRes.ok) {
                         const allData = await allOrdersRes.json();
-                        const allOrders = Array.isArray(allData.data) ? allData.data : [];
+                        const allOrders = Array.isArray(allData.data)
+                            ? allData.data
+                            : Array.isArray(allData.data?.data)
+                            ? allData.data.data
+                            : [];
                         setStats({
                             total: allOrders.length,
                             pending: allOrders.filter((o: Order) => o.status === "pending").length,
                             shipped: allOrders.filter((o: Order) => o.status === "shipped").length,
-                            delivered: allOrders.filter((o: Order) => o.status === "delivered").length,
+                            delivered: allOrders.filter((o: Order) => o.status === "delivered" || o.status === "completed").length,
                         });
                     }
                 }
@@ -77,6 +85,10 @@ export default function CustomerDashboardPage() {
 
     const handleSubmitReview = async () => {
         if (!reviewModal.item || !reviewText.trim()) return;
+        if (!reviewModal.item.id) {
+            alert("Missing order item reference for review");
+            return;
+        }
 
         try {
             const res = await fetch("/api/reviews", {
@@ -84,9 +96,10 @@ export default function CustomerDashboardPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     product_id: reviewModal.item.product_id,
+                    order_item_id: reviewModal.item.id,
                     rating: reviewRating,
                     title: reviewText.split(".")[0].substring(0, 100),
-                    comment: reviewText,
+                    body: reviewText,
                 }),
             });
 
@@ -168,13 +181,13 @@ export default function CustomerDashboardPage() {
                                         <span className="text-xs text-gray-500">{new Date(order.created_at).toLocaleDateString()}</span>
                                     </div>
                                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                        order.status === "delivered"
+                                        order.status === "delivered" || order.status === "completed"
                                             ? "bg-emerald-50 text-emerald-600"
                                             : order.status === "shipped"
                                             ? "bg-blue-50 text-blue-600"
                                             : "bg-amber-50 text-amber-600"
                                     }`}>
-                                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                        {(order.status === "completed" ? "delivered" : order.status).charAt(0).toUpperCase() + (order.status === "completed" ? "delivered" : order.status).slice(1)}
                                     </span>
                                 </div>
 
@@ -198,7 +211,7 @@ export default function CustomerDashboardPage() {
                                 )}
 
                                 <div className="mt-4 pt-4 border-t border-gray-50 flex justify-end gap-3">
-                                    {order.status === "delivered" && order.items[0] && (
+                                    {(order.status === "delivered" || order.status === "completed") && order.items[0] && (
                                         <button
                                             onClick={() => { setReviewText(""); setReviewRating(5); setReviewDone(false); setReviewModal({ open: true, item: order.items[0] }); }}
                                             className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 transition-colors"

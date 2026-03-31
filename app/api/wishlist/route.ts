@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { apiSuccess, apiError, requireAuth } from '@/lib/api-helpers';
+import { apiSuccess, apiError, requireNonGuest } from '@/lib/api-helpers';
 import { mutationRateLimit } from '@/lib/ratelimit';
 import { z } from 'zod';
 
@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 export async function GET() {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 
@@ -47,7 +47,7 @@ const addToWishlistSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 

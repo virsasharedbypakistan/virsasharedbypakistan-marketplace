@@ -28,8 +28,9 @@ export async function GET(request: NextRequest) {
             .from("order_items")
             .select(`
                 created_at,
-                price,
+                unit_price,
                 quantity,
+                subtotal,
                 commission_rate
             `)
             .gte("created_at", startDate.toISOString())
@@ -52,11 +53,12 @@ export async function GET(request: NextRequest) {
             });
 
             const revenue = dayOrders.reduce((sum, item) => {
-                return sum + (parseFloat(item.price) * item.quantity);
+                const lineTotal = item.subtotal ?? (parseFloat(item.unit_price) * item.quantity);
+                return sum + lineTotal;
             }, 0);
 
             const commission = dayOrders.reduce((sum, item) => {
-                const itemTotal = parseFloat(item.price) * item.quantity;
+                const itemTotal = item.subtotal ?? (parseFloat(item.unit_price) * item.quantity);
                 const commissionRate = parseFloat(item.commission_rate) || 0;
                 return sum + (itemTotal * commissionRate / 100);
             }, 0);

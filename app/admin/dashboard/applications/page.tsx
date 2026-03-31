@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
     Store, Clock, CheckCircle2, XCircle, Eye, ChevronRight, Search,
     Download, MapPin, Phone, Mail, Calendar, Building2,
@@ -15,21 +16,29 @@ type AppStatus = "Pending" | "Under Review" | "Approved" | "Rejected";
 type Application = {
     id: string;
     storeName: string;
+    storeSlug: string;
     category: string;
     ownerName: string;
     email: string;
     phone: string;
     city: string;
+    address?: string;
     businessType: string;
+    ntn?: string;
     cnic: string;
-    cnicDocumentUrl?: string;
+    cnicFrontUrl?: string;
+    cnicBackUrl?: string;
+    logoUrl?: string;
+    bannerUrl?: string;
     bankName: string;
+    accountTitle: string;
+    accountNumber: string;
     iban: string;
     description: string;
     submittedAt: string;
     status: AppStatus;
     reviewNote?: string;
-    socialLinks: { website?: string; instagram?: string };
+    socialLinks: { website?: string; instagram?: string; facebook?: string };
     docsUploaded: boolean;
     logo: string;
 };
@@ -105,15 +114,43 @@ function DetailModal({
 
                 {/* Scrollable Body */}
                 <div className="overflow-y-auto flex-1 p-6 space-y-6">
+                    {/* Store Images Preview */}
+                    {(app.logoUrl || app.bannerUrl) && (
+                        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Store Branding</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                {app.logoUrl && (
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-2 font-medium">Logo (200x200px)</p>
+                                        <div className="relative w-full aspect-square rounded-xl overflow-hidden border border-gray-200 bg-white">
+                                            <Image src={app.logoUrl} alt="Store Logo" fill className="object-contain p-2" />
+                                        </div>
+                                    </div>
+                                )}
+                                {app.bannerUrl && (
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-2 font-medium">Banner (1200x400px)</p>
+                                        <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden border border-gray-200 bg-white">
+                                            <Image src={app.bannerUrl} alt="Store Banner" fill className="object-cover" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Store + Owner */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="bg-virsa-primary/5 rounded-2xl p-4 border border-virsa-primary/10">
                             <p className="text-xs font-bold text-virsa-primary uppercase tracking-wider mb-3 flex items-center gap-1"><Store className="w-3.5 h-3.5" /> Store Info</p>
                             <div className="space-y-2 text-sm">
                                 <p><span className="text-gray-500">Name:</span> <span className="font-bold text-gray-900 ml-1">{app.storeName}</span></p>
+                                <p><span className="text-gray-500">URL Slug:</span> <span className="font-mono text-gray-700 ml-1 text-xs">{app.storeSlug}</span></p>
                                 <p><span className="text-gray-500">Category:</span> <span className="font-bold text-gray-900 ml-1">{app.category}</span></p>
                                 <p><span className="text-gray-500">Business:</span> <span className="font-medium text-gray-800 ml-1">{app.businessType}</span></p>
+                                {app.ntn && <p><span className="text-gray-500">NTN:</span> <span className="font-mono text-gray-800 ml-1 text-xs">{app.ntn}</span></p>}
                                 <p className="flex items-center gap-1 text-gray-500"><MapPin className="w-3.5 h-3.5" /><span className="font-medium text-gray-800">{app.city}</span></p>
+                                {app.address && <p className="text-xs text-gray-600 mt-1">{app.address}</p>}
                             </div>
                         </div>
                         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
@@ -135,37 +172,87 @@ function DetailModal({
                     {/* Documents & Bank */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> Documents</p>
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> CNIC Verification</p>
                             <div className="space-y-2.5 text-sm">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-gray-500">CNIC</span>
+                                    <span className="text-gray-500">CNIC Number</span>
                                     <span className="font-mono text-gray-800 font-medium text-xs">{app.cnic}</span>
                                 </div>
-                                {app.cnicDocumentUrl ? (
-                                    <div className="grid grid-cols-2 gap-2 mt-2">
-                                        <a 
-                                            href={app.cnicDocumentUrl} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="flex items-center justify-center gap-2 bg-virsa-primary text-white rounded-lg p-2.5 hover:bg-virsa-primary/90 transition-colors text-xs font-bold"
-                                        >
-                                            <Eye className="w-3.5 h-3.5" />
-                                            View
-                                        </a>
-                                        <a
-                                            href={app.cnicDocumentUrl}
-                                            download
-                                            className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 rounded-lg p-2.5 hover:bg-gray-50 transition-colors text-xs font-bold"
-                                        >
-                                            <Download className="w-3.5 h-3.5" />
-                                            Download
-                                        </a>
+                                
+                                {/* CNIC Front */}
+                                {app.cnicFrontUrl ? (
+                                    <div className="mt-3">
+                                        <p className="text-xs text-gray-600 font-medium mb-2">Front Side (with photo)</p>
+                                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+                                            <p className="text-xs text-emerald-700 flex items-center gap-1 font-medium mb-2">
+                                                <CheckCircle2 className="w-3 h-3" />
+                                                Document uploaded
+                                            </p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 mt-2">
+                                            <a 
+                                                href={app.cnicFrontUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="flex items-center justify-center gap-2 bg-virsa-primary text-white rounded-lg p-2.5 hover:bg-virsa-primary/90 transition-colors text-xs font-bold"
+                                            >
+                                                <Eye className="w-3.5 h-3.5" />
+                                                View
+                                            </a>
+                                            <a
+                                                href={app.cnicFrontUrl}
+                                                download
+                                                className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 rounded-lg p-2.5 hover:bg-gray-50 transition-colors text-xs font-bold"
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                Download
+                                            </a>
+                                        </div>
                                     </div>
                                 ) : (
-                                    <div className="bg-gray-100 border border-gray-200 rounded-lg p-2 mt-2">
-                                        <p className="text-xs text-gray-600 flex items-center gap-1">
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
+                                        <p className="text-xs text-red-700 flex items-center gap-1 font-medium">
                                             <AlertCircle className="w-3 h-3" />
-                                            No document uploaded. Verify CNIC manually.
+                                            Front side not uploaded
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* CNIC Back */}
+                                {app.cnicBackUrl ? (
+                                    <div className="mt-3">
+                                        <p className="text-xs text-gray-600 font-medium mb-2">Back Side (with address)</p>
+                                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+                                            <p className="text-xs text-emerald-700 flex items-center gap-1 font-medium mb-2">
+                                                <CheckCircle2 className="w-3 h-3" />
+                                                Document uploaded
+                                            </p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 mt-2">
+                                            <a 
+                                                href={app.cnicBackUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="flex items-center justify-center gap-2 bg-virsa-primary text-white rounded-lg p-2.5 hover:bg-virsa-primary/90 transition-colors text-xs font-bold"
+                                            >
+                                                <Eye className="w-3.5 h-3.5" />
+                                                View
+                                            </a>
+                                            <a
+                                                href={app.cnicBackUrl}
+                                                download
+                                                className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 rounded-lg p-2.5 hover:bg-gray-50 transition-colors text-xs font-bold"
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                Download
+                                            </a>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-2 mt-2">
+                                        <p className="text-xs text-red-700 flex items-center gap-1 font-medium">
+                                            <AlertCircle className="w-3 h-3" />
+                                            Back side not uploaded
                                         </p>
                                     </div>
                                 )}
@@ -175,8 +262,16 @@ function DetailModal({
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1"><CreditCard className="w-3.5 h-3.5" /> Bank Details</p>
                             <div className="space-y-2.5 text-sm">
                                 <div className="flex items-center justify-between">
+                                    <span className="text-gray-500">Account Title</span>
+                                    <span className="font-medium text-gray-800 text-xs text-right">{app.accountTitle}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
                                     <span className="text-gray-500">Bank</span>
                                     <span className="font-bold text-gray-800">{app.bankName}</span>
+                                </div>
+                                <div className="flex items-start justify-between gap-2">
+                                    <span className="text-gray-500 flex-shrink-0">Account #</span>
+                                    <span className="font-mono text-gray-800 text-xs text-right break-all">{app.accountNumber}</span>
                                 </div>
                                 <div className="flex items-start justify-between gap-2">
                                     <span className="text-gray-500 flex-shrink-0">IBAN</span>
@@ -187,11 +282,12 @@ function DetailModal({
                     </div>
 
                     {/* Social */}
-                    {(app.socialLinks.website || app.socialLinks.instagram) && (
+                    {(app.socialLinks.website || app.socialLinks.instagram || app.socialLinks.facebook) && (
                         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 text-sm space-y-1">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Social Links</p>
                             {app.socialLinks.website && <p><span className="text-gray-500">Website:</span> <a href={app.socialLinks.website} className="text-virsa-primary font-medium ml-1 hover:underline" target="_blank" rel="noreferrer">{app.socialLinks.website}</a></p>}
                             {app.socialLinks.instagram && <p><span className="text-gray-500">Instagram:</span> <span className="font-medium text-gray-800 ml-1">{app.socialLinks.instagram}</span></p>}
+                            {app.socialLinks.facebook && <p><span className="text-gray-500">Facebook:</span> <span className="font-medium text-gray-800 ml-1">{app.socialLinks.facebook}</span></p>}
                         </div>
                     )}
 
@@ -284,42 +380,53 @@ export default function AdminApplicationsPage() {
                 const data = await response.json();
                 
                 // Transform backend data to match Application type
-                const transformedApps: Application[] = (data.data?.data || []).map((vendor: any) => ({
-                    id: vendor.id,
-                    storeName: vendor.store_name,
-                    category: vendor.metadata?.category || "General",
-                    ownerName: vendor.metadata?.first_name && vendor.metadata?.last_name 
-                        ? `${vendor.metadata.first_name} ${vendor.metadata.last_name}`
-                        : vendor.users?.full_name || "N/A",
-                    email: vendor.email,
-                    phone: vendor.phone || "N/A",
-                    city: vendor.metadata?.city || "N/A",
-                    businessType: vendor.metadata?.business_type || "Individual / Sole Proprietor",
-                    cnic: vendor.metadata?.cnic || "N/A",
-                    cnicDocumentUrl: vendor.cnic_document_url
-                        ? `/api/admin/vendors/${vendor.id}/document`
-                        : undefined,
-                    bankName: vendor.vendor_bank_details?.bank_name || "N/A",
-                    iban: vendor.vendor_bank_details?.iban || "N/A",
-                    description: vendor.description || "No description provided.",
-                    submittedAt: new Date(vendor.created_at).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                    }),
+                const transformedApps: Application[] = (data.data?.data || []).map((vendor: any) => {
+                    const bankDetails = vendor.vendor_bank_details;
+                    const metadata = vendor.metadata || {};
+                    return {
+                        id: vendor.id,
+                        storeName: vendor.store_name,
+                        storeSlug: vendor.store_slug,
+                        category: metadata?.category || "General",
+                        ownerName: metadata?.first_name && metadata?.last_name 
+                            ? `${metadata.first_name} ${metadata.last_name}`
+                            : vendor.users?.full_name || "N/A",
+                        email: vendor.email,
+                        phone: vendor.phone || "N/A",
+                        city: metadata?.city || "N/A",
+                        address: metadata?.address || undefined,
+                        businessType: metadata?.business_type || "Individual / Sole Proprietor",
+                        ntn: metadata?.ntn || undefined,
+                        cnic: metadata?.cnic || "N/A",
+                        cnicFrontUrl: metadata?.cnic_front_url || undefined,
+                        cnicBackUrl: metadata?.cnic_back_url || undefined,
+                        logoUrl: vendor.logo_url || undefined,
+                        bannerUrl: vendor.banner_url || undefined,
+                        bankName: bankDetails?.bank_name || "N/A",
+                        accountTitle: bankDetails?.account_holder_name || "N/A",
+                        accountNumber: bankDetails?.account_number || "N/A",
+                        iban: bankDetails?.iban || "N/A",
+                        description: vendor.description || "No description provided.",
+                        submittedAt: new Date(vendor.created_at).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                        }),
                         status: vendor.status === "pending" ? "Pending" : 
                             vendor.status === "approved" ? "Approved" : 
                             vendor.status === "rejected" ? "Rejected" : "Pending",
-                    reviewNote: vendor.rejection_reason,
-                    socialLinks: {
-                        website: vendor.metadata?.website || "",
-                        instagram: vendor.metadata?.instagram || "",
-                    },
-                    docsUploaded: !!vendor.cnic_document_url,
-                    logo: vendor.logo_url || "/images/vendors/vendor1.png"
-                }));
+                        reviewNote: vendor.rejection_reason,
+                        socialLinks: {
+                            website: metadata?.website || "",
+                            instagram: metadata?.instagram || "",
+                            facebook: metadata?.facebook || "",
+                        },
+                        docsUploaded: !!(metadata?.cnic_front_url && metadata?.cnic_back_url),
+                        logo: vendor.logo_url || "/images/vendors/vendor1.png"
+                    };
+                });
                 
                 setApps(transformedApps);
             } catch (error) {

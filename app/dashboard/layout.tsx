@@ -3,16 +3,33 @@
 import Link from "next/link";
 import { LayoutDashboard, ShoppingBag, Heart, Star, Settings, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function CustomerDashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const { user, profile, signOut } = useAuth();
+    const { user, profile, signOut, loading } = useAuth();
     const router = useRouter();
+    const pathname = usePathname();
+    const [showGuestToast, setShowGuestToast] = useState(false);
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.replace("/login");
+        }
+    }, [loading, user, router]);
+
+    useEffect(() => {
+        if (!loading && user?.user_metadata?.is_guest && pathname && pathname !== "/dashboard") {
+            setShowGuestToast(true);
+            const timer = setTimeout(() => setShowGuestToast(false), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [loading, user, pathname]);
 
     const navItems = [
         { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -35,6 +52,57 @@ export default function CustomerDashboardLayout({
             .toUpperCase()
             .slice(0, 2);
     };
+
+    if (loading) {
+        return (
+            <div className="container mx-auto px-4 py-10">
+                <div className="bg-white rounded-[24px] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100">
+                    <div className="h-6 w-40 bg-gray-200 rounded mb-4 animate-pulse" />
+                    <div className="h-4 w-72 bg-gray-200 rounded animate-pulse" />
+                </div>
+            </div>
+        );
+    }
+
+    if (user?.user_metadata?.is_guest) {
+        return (
+            <div className="container mx-auto px-4 py-12">
+                {showGuestToast && (
+                    <div className="fixed top-20 right-6 z-50">
+                        <div className="bg-white border border-amber-100 shadow-lg rounded-xl px-4 py-3 text-sm text-amber-700">
+                            Dashboard access requires a registered account.
+                        </div>
+                    </div>
+                )}
+                <div className="bg-white rounded-[28px] p-10 shadow-[0_8px_30px_rgba(0,0,0,0.06)] border border-gray-100 max-w-2xl">
+                    <h1 className="text-2xl font-bold text-gray-900">Dashboard is for registered users</h1>
+                    <p className="text-gray-600 mt-3">
+                        You are browsing as a guest. Create an account to access your dashboard, orders, and saved items.
+                    </p>
+                    <div className="mt-6 flex flex-wrap gap-3">
+                        <button
+                            onClick={() => router.push("/register")}
+                            className="px-5 py-2.5 rounded-xl bg-virsa-primary text-white font-semibold hover:bg-virsa-primary/90 transition-colors"
+                        >
+                            Create Account
+                        </button>
+                        <button
+                            onClick={() => router.push("/login")}
+                            className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+                        >
+                            Sign In
+                        </button>
+                        <button
+                            onClick={handleSignOut}
+                            className="px-5 py-2.5 rounded-xl text-red-600 font-semibold hover:bg-red-50 transition-colors"
+                        >
+                            Exit Guest Session
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto px-4 py-8">

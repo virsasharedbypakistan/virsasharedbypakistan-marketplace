@@ -4,19 +4,20 @@ import {
   apiSuccess,
   apiError,
   requireAuth,
+  requireNonGuest,
   getPagination,
   paginationMeta,
   getVendorForUser,
 } from '@/lib/api-helpers';
 import { orderRateLimit } from '@/lib/ratelimit';
-import { sendEmail, orderPlacedEmail } from '@/lib/email';
+import { sendEmail, orderPlacedEmail, vendorOrderEmail } from '@/lib/email';
 import { z } from 'zod';
 
 // ── GET /api/orders — Get user's orders ─────────────────────────────
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 
@@ -30,7 +31,11 @@ export async function GET(request: NextRequest) {
         `
         id, order_number, customer_id, shipping_full_name, shipping_city,
         subtotal, shipping_total, discount_total, total_amount,
-        payment_method, payment_status, status, created_at, updated_at
+        payment_method, payment_status, status, created_at, updated_at,
+        order_items(
+          id, product_id, product_name, product_thumbnail, quantity, unit_price,
+          vendors!inner(store_name)
+        )
       `,
         { count: 'exact' }
       )
@@ -52,8 +57,21 @@ export async function GET(request: NextRequest) {
       return apiError('Failed to fetch orders', 500);
     }
 
+    const mappedOrders = (orders || []).map((order: any) => ({
+      ...order,
+      items: (order.order_items || []).map((item: any) => ({
+        id: item.id,
+        product_id: item.product_id,
+        name: item.product_name,
+        price: item.unit_price,
+        quantity: item.quantity,
+        thumbnail_url: item.product_thumbnail,
+        vendor_name: item.vendors?.store_name || 'Vendor',
+      })),
+    }));
+
     return apiSuccess({
-      data: orders || [],
+      data: mappedOrders,
       pagination: paginationMeta(page, limit, count || 0),
     });
   } catch (err) {
@@ -181,7 +199,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate totals
     let subtotal = 0;
-    const orderItems = [];
+    const orderItems: any[] = [];
 
     for (const item of items) {
       const product = products.find((p) => p.id === item.product_id)!;
@@ -288,7 +306,7 @@ export async function POST(request: NextRequest) {
 
     const notificationEmail = contact_email || user.email;
 
-    await sendEmail({
+    const customerEmailResult = await sendEmail({
       to: notificationEmail,
       ...orderPlacedEmail({
         customerName: userProfile?.full_name || 'Customer',
@@ -297,6 +315,49 @@ export async function POST(request: NextRequest) {
         orderUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/orders/${order.id}`,
       }),
     });
+
+    if (!customerEmailResult.success) {
+      console.error('[Orders POST] Customer email failed:', customerEmailResult.error);
+    }
+
+    // Notify vendors
+    const vendorIds = Array.from(new Set(orderItems.map((item) => item.vendor_id)));
+    const { data: vendors } = await supabaseAdmin
+      .from('vendors')
+      .select('id, store_name, email')
+      .in('id', vendorIds);
+
+    if (vendors && vendors.length > 0) {
+      const itemsByVendor = vendorIds.reduce<Record<string, typeof orderItems>>((acc, vendorId) => {
+        acc[vendorId] = orderItems.filter((item) => item.vendor_id === vendorId);
+        return acc;
+      }, {});
+
+      await Promise.all(
+        vendors
+          .filter((vendor) => vendor.email)
+          .map(async (vendor) => {
+            const vendorItems = itemsByVendor[vendor.id] || [];
+            const emailResult = await sendEmail({
+              to: vendor.email,
+              ...vendorOrderEmail({
+                vendorName: vendor.store_name,
+                orderNumber: order.order_number,
+                items: vendorItems.map((item) => ({
+                  name: item.product_name,
+                  quantity: item.quantity,
+                  subtotal: item.subtotal,
+                })),
+                orderUrl: `${process.env.NEXT_PUBLIC_APP_URL}/vendor/dashboard/orders`,
+              }),
+            });
+
+            if (!emailResult.success) {
+              console.error('[Orders POST] Vendor email failed:', emailResult.error);
+            }
+          })
+      );
+    }
 
     return apiSuccess(
       {

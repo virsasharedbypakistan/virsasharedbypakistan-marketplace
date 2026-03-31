@@ -21,6 +21,11 @@ function buildGuestPassword() {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[Auth Guest] Missing Supabase environment configuration');
+      return apiError('Server configuration error', 500, 'CONFIG_ERROR');
+    }
+
     const ip = getClientIp(request);
     const { success: allowed } = await authGuestRateLimit.limit(ip);
     if (!allowed) {
@@ -93,16 +98,21 @@ export async function POST(request: NextRequest) {
     const guestName = full_name ?? 'Guest Checkout';
     const guestPassword = buildGuestPassword();
 
+    const guestExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email: guestEmail,
       password: guestPassword,
-      email_confirm: false,
-      user_metadata: { full_name: guestName, is_guest: true },
+      email_confirm: true,
+      user_metadata: { full_name: guestName, is_guest: true, guest_expires_at: guestExpiresAt },
     });
 
     if (error || !data.user) {
+      console.error('[Auth Guest] Create user error:', error);
       const message = error?.message?.toLowerCase().includes('already')
         ? 'An account already exists for this email. Please sign in.'
+        : process.env.NODE_ENV === 'development'
+        ? error?.message || 'Failed to create guest session'
         : 'Failed to create guest session';
       const status = error?.message?.toLowerCase().includes('already') ? 409 : 500;
       return apiError(message, status, 'GUEST_CREATE_FAILED');
@@ -114,6 +124,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (signInError) {
+      console.error('[Auth Guest] Sign-in error:', signInError);
       return apiError('Failed to start guest session', 500, 'GUEST_SIGNIN_FAILED');
     }
 

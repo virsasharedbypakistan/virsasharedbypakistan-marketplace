@@ -25,12 +25,13 @@ export async function GET(
         id, name, slug, description, short_description, price, sale_price, stock,
         images, thumbnail_url, tags, specifications, status, is_featured,
         average_rating, total_reviews, total_sold, created_at, updated_at,
-        vendors!inner(id, store_name, store_slug, logo_url, banner_url, average_rating, total_reviews),
+        vendors!inner(id, store_name, store_slug, logo_url, banner_url, average_rating, total_reviews, status),
         categories(id, name, slug, image_url)
       `
       )
       .eq('id', id)
       .eq('status', 'active')
+      .eq('vendors.status', 'approved')
       .single();
 
     if (error || !product) {

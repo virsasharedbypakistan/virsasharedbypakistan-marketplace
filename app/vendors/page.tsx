@@ -32,10 +32,11 @@ type VendorWithProducts = Vendor & {
 
 async function getVendors(searchQuery?: string): Promise<VendorWithProducts[]> {
     try {
-        // Get all vendors (filter by approval_status if column exists)
+        // Get only approved vendors
         let query = supabaseAdmin
             .from('vendors')
             .select('*')
+            .eq('status', 'approved')
             .order('average_rating', { ascending: false });
 
         if (searchQuery) {
@@ -56,7 +57,7 @@ async function getVendors(searchQuery?: string): Promise<VendorWithProducts[]> {
             return [];
         }
 
-        // Get product counts for each vendor
+        // Get product counts for each vendor (only active products)
         const vendorIds = vendors.map(v => v.id);
         const { data: productCounts } = await supabaseAdmin
             .from('products')

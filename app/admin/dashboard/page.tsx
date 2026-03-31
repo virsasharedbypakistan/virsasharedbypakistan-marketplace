@@ -362,15 +362,20 @@ export default function AdminDashboardPage() {
                                     <p className="text-xs text-gray-500">{docsModal.email}</p>
                                 </div>
                             </div>
-                            {["CNIC / Passport", "Business Registration", "Bank Statement", "Tax ID / NTN"].map(doc => (
-                                <div key={doc} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                                    <span className="text-sm font-medium text-gray-700">{doc}</span>
-                                    <div className="flex gap-2">
-                                        <span className="text-xs font-bold bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">Submitted</span>
-                                        <button className="text-xs font-bold text-virsa-primary hover:underline">View</button>
-                                    </div>
-                                </div>
-                            ))}
+                            
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
+                                <p className="font-bold mb-1">📋 Quick Review</p>
+                                <p>Only CNIC document is collected during vendor registration. For full details, visit the Applications page.</p>
+                            </div>
+
+                            <Link 
+                                href="/admin/dashboard/applications"
+                                onClick={() => setDocsModal(null)}
+                                className="block w-full py-3 text-center rounded-xl bg-virsa-primary text-white font-bold hover:bg-virsa-primary/90 transition-colors"
+                            >
+                                View Full Application Details
+                            </Link>
+
                             <div className="flex gap-3 pt-2">
                                 <button onClick={() => { setDocsModal(null); setApproveConfirm(docsModal); }} className="flex-1 py-3 rounded-xl bg-emerald-500 text-white font-bold hover:bg-emerald-600 transition-colors">Approve Vendor</button>
                                 <button onClick={() => { setDocsModal(null); setRejectConfirm(docsModal); }} className="flex-1 py-3 rounded-xl bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors">Reject</button>

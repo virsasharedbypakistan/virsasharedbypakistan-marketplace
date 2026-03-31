@@ -129,18 +129,31 @@ export default function CheckoutPage() {
                 </div>
 
                 {success && (
-                    <div className="mb-6 bg-emerald-50 border border-emerald-100 rounded-2xl p-5 flex items-start justify-between gap-4">
-                        <div>
-                            <p className="text-sm font-bold text-emerald-700">Order placed successfully</p>
-                            <p className="text-xl font-black text-emerald-900 mt-1">Order #{success.orderNumber}</p>
-                            <p className="text-sm text-emerald-700 mt-2">We sent your confirmation email and will notify you when the order ships.</p>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                            <div className="text-center">
+                                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                                    <Check className="h-6 w-6" />
+                                </div>
+                                <p className="text-sm font-bold text-emerald-700">Order placed successfully</p>
+                                <p className="text-xl font-black text-gray-900 mt-1">Order #{success.orderNumber}</p>
+                                <p className="text-sm text-gray-600 mt-2">We sent your confirmation email and will notify you when the order ships.</p>
+                            </div>
+                            <div className="mt-6 grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => setSuccess(null)}
+                                    className="w-full py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50"
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={() => router.push("/products")}
+                                    className="w-full py-3 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700"
+                                >
+                                    Continue shopping
+                                </button>
+                            </div>
                         </div>
-                        <button
-                            onClick={() => router.push("/products")}
-                            className="px-5 py-2.5 bg-emerald-700 text-white text-sm font-bold rounded-xl hover:bg-emerald-800 transition-colors"
-                        >
-                            Continue shopping
-                        </button>
                     </div>
                 )}
 

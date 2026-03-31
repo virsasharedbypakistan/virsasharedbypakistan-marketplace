@@ -28,17 +28,18 @@ export async function GET(request: NextRequest) {
     const featured = searchParams.get('featured');
     const onSale = searchParams.get('on_sale');
 
-    // Build query
+    // Build query - only show products from approved vendors
     let query = supabaseAdmin
       .from('products')
       .select(
         `id, name, slug, short_description, price, sale_price, stock, images, thumbnail_url,
          status, is_featured, average_rating, total_reviews, total_sold, created_at,
-         vendors!inner(id, store_name, logo_url, average_rating),
+         vendors!inner(id, store_name, logo_url, average_rating, status),
          categories(id, name, slug)`,
         { count: 'exact' }
       )
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .eq('vendors.status', 'approved');
 
     // Filters
     if (categoryId) query = query.eq('category_id', categoryId);

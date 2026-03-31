@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, ShoppingBag, Truck, CheckCircle2, Clock, X, ChevronDown } from "lucide-react";
+import { Search, ShoppingBag, Truck, CheckCircle2, Clock, X, ChevronDown, Trash2 } from "lucide-react";
 
 type Order = {
     id: string;
@@ -31,6 +31,7 @@ export default function AdminOrdersPage() {
     const [statusFilter, setStatusFilter] = useState("All Statuses");
     const [detailModal, setDetailModal] = useState<{ open: boolean; order: Order | null }>({ open: false, order: null });
     const [statusModal, setStatusModal] = useState<{ open: boolean; order: Order | null }>({ open: false, order: null });
+    const [deleteConfirm, setDeleteConfirm] = useState<Order | null>(null);
     const [newStatus, setNewStatus] = useState<Order["status"]>("Pending");
 
     useEffect(() => {

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { apiSuccess, apiError, requireAuth } from '@/lib/api-helpers';
+import { apiSuccess, apiError, requireNonGuest } from '@/lib/api-helpers';
 
 // ── PATCH /api/notifications/[id] — Mark as read ────────────────────
 
@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 
@@ -46,7 +46,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 

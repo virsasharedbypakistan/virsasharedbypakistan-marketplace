@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { apiSuccess, apiError, requireAuth, getPagination, paginationMeta } from '@/lib/api-helpers';
+import { apiSuccess, apiError, requireNonGuest, getPagination, paginationMeta } from '@/lib/api-helpers';
 
 // ── GET /api/notifications — Get user notifications ─────────────────
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 

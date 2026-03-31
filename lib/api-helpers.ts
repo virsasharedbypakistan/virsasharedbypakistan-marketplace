@@ -24,6 +24,8 @@ export interface AuthUser {
   id: string;
   email: string;
   role: 'customer' | 'vendor' | 'admin';
+  is_guest: boolean;
+  guest_expires_at?: string | null;
 }
 
 /**
@@ -48,6 +50,8 @@ export async function getAuthUser(): Promise<AuthUser | null> {
       id: user.id,
       email: user.email || '',
       role: profile?.role || 'customer',
+      is_guest: Boolean(user.user_metadata?.is_guest),
+      guest_expires_at: user.user_metadata?.guest_expires_at || null,
     };
   } catch {
     return null;
@@ -63,6 +67,20 @@ export async function requireAuth(): Promise<{ user: AuthUser } | { error: NextR
     return { error: apiError('Authentication required', 401, 'UNAUTHORIZED') };
   }
   return { user };
+}
+
+/**
+ * Require authentication and a non-guest user.
+ */
+export async function requireNonGuest(): Promise<{ user: AuthUser } | { error: NextResponse }> {
+  const result = await requireAuth();
+  if ('error' in result) return result;
+
+  if (result.user.is_guest) {
+    return { error: apiError('Please sign in or register to access this feature', 403, 'GUEST_RESTRICTED') };
+  }
+
+  return result;
 }
 
 /**

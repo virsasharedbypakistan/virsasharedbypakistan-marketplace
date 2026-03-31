@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import {
   apiSuccess,
   apiError,
-  requireAuth,
+  requireNonGuest,
   getPagination,
   paginationMeta,
 } from '@/lib/api-helpers';
@@ -16,7 +16,42 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
     const productId = searchParams.get('product_id');
+    const userReviews = searchParams.get('user_reviews') === 'true';
     const { page, limit } = getPagination(searchParams);
+
+    if (userReviews) {
+      const authResult = await requireNonGuest();
+      if ('error' in authResult) return authResult.error;
+      const { user } = authResult;
+
+      const { data: reviews, error } = await supabaseAdmin
+        .from('reviews')
+        .select(
+          `
+          id, product_id, rating, title, body, created_at,
+          products!inner(id, name, thumbnail_url)
+        `
+        )
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[Reviews GET] User query error:', error);
+        return apiError('Failed to fetch reviews', 500);
+      }
+
+      const mapped = (reviews || []).map((review: any) => ({
+        id: review.id,
+        product_id: review.product_id,
+        rating: review.rating,
+        title: review.title,
+        comment: review.body,
+        created_at: review.created_at,
+        products: review.products,
+      }));
+
+      return apiSuccess(mapped);
+    }
 
     if (!productId) {
       return apiError('product_id query parameter required', 400, 'MISSING_PRODUCT_ID');
@@ -73,12 +108,13 @@ const createReviewSchema = z.object({
   rating: z.number().int().min(1).max(5, 'Rating must be between 1 and 5'),
   title: z.string().max(200).optional(),
   body: z.string().max(5000).optional(),
+  comment: z.string().max(5000).optional(),
   images: z.array(z.string().url()).max(5).optional(),
 });
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 
@@ -119,7 +155,7 @@ export async function POST(request: NextRequest) {
       return apiError('You can only review products you have purchased', 403, 'NOT_VERIFIED_PURCHASE');
     }
 
-    if (orderItem.item_status !== 'completed') {
+    if (!['completed', 'delivered'].includes(orderItem.item_status)) {
       return apiError('You can only review completed orders', 400, 'ORDER_NOT_COMPLETED');
     }
 
@@ -136,6 +172,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create review
+    const reviewBody = data.body ?? data.comment ?? null;
+
     const { data: review, error } = await supabaseAdmin
       .from('reviews')
       .insert({
@@ -144,7 +182,7 @@ export async function POST(request: NextRequest) {
         order_item_id: data.order_item_id,
         rating: data.rating,
         title: data.title || null,
-        body: data.body || null,
+        body: reviewBody,
         images: data.images || null,
         is_approved: true, // Auto-approve for now
       })

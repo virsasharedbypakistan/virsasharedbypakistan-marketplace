@@ -13,6 +13,8 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [guestLoading, setGuestLoading] = useState(false);
+    const [showGuestDialog, setShowGuestDialog] = useState(false);
+    const [guestEmail, setGuestEmail] = useState("");
     const [error, setError] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -100,6 +102,7 @@ export default function LoginPage() {
             const res = await fetch("/api/auth/guest", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: guestEmail.trim() || undefined }),
             });
 
             const data = await res.json();
@@ -108,6 +111,8 @@ export default function LoginPage() {
                 return;
             }
 
+            setShowGuestDialog(false);
+            setGuestEmail("");
             router.push("/products");
         } catch (err) {
             console.error("Guest login error:", err);
@@ -215,11 +220,11 @@ export default function LoginPage() {
                         </button>
                         <button
                             type="button"
-                            onClick={handleGuestLogin}
+                            onClick={() => setShowGuestDialog(true)}
                             disabled={loading || guestLoading}
                             className="group relative w-full flex justify-center py-3.5 px-4 border border-gray-200 text-sm font-bold rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-virsa-primary transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {guestLoading ? 'Starting guest session...' : 'Continue as Guest'}
+                            Continue as Guest
                         </button>
                     </div>
                 </form>
@@ -253,6 +258,56 @@ export default function LoginPage() {
                         <span className="text-xs text-gray-500 mt-0.5">Sell products</span>
                     </Link>
                 </div>
+                {showGuestDialog && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
+                        <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <h3 className="text-lg font-extrabold text-gray-900">Continue as Guest</h3>
+                                    <p className="text-sm text-gray-500 mt-1">Enter an email for order updates and receipts.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGuestDialog(false)}
+                                    className="text-gray-400 hover:text-gray-600"
+                                    aria-label="Close"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="mt-5 space-y-3">
+                                <label className="block text-sm font-medium text-gray-700">Email address</label>
+                                <input
+                                    type="email"
+                                    value={guestEmail}
+                                    onChange={(e) => setGuestEmail(e.target.value)}
+                                    placeholder="you@example.com"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-virsa-primary"
+                                />
+                                <p className="text-xs text-gray-500">You can skip this and still continue.</p>
+                            </div>
+
+                            <div className="mt-6 grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGuestDialog(false)}
+                                    className="w-full py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleGuestLogin}
+                                    disabled={guestLoading}
+                                    className="w-full py-3 rounded-xl bg-virsa-primary text-white text-sm font-bold hover:bg-virsa-primary/90 disabled:opacity-60"
+                                >
+                                    {guestLoading ? "Creating session..." : "Continue"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

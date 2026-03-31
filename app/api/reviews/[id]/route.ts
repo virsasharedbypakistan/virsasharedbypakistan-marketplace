@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { apiSuccess, apiError, requireAuth, requireRole } from '@/lib/api-helpers';
+import { apiSuccess, apiError, requireNonGuest, requireRole } from '@/lib/api-helpers';
 import { mutationRateLimit } from '@/lib/ratelimit';
 import { z } from 'zod';
 
@@ -15,11 +15,11 @@ const updateReviewSchema = z.object({
   images: z.array(z.string().url()).max(5).optional(),
 });
 
-export async function PUT(request: NextRequest, context: RouteContext) {
+async function handleUpdate(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
 
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 
@@ -102,13 +102,21 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 }
 
+export async function PUT(request: NextRequest, context: RouteContext) {
+  return handleUpdate(request, context);
+}
+
+export async function PATCH(request: NextRequest, context: RouteContext) {
+  return handleUpdate(request, context);
+}
+
 // ── DELETE /api/reviews/[id] — Delete review (owner or admin) ───────
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
 
-    const authResult = await requireAuth();
+    const authResult = await requireNonGuest();
     if ('error' in authResult) return authResult.error;
     const { user } = authResult;
 

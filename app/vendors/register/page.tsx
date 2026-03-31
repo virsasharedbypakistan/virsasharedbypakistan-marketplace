@@ -17,8 +17,9 @@ type FormData = {
     storeName: string; storeSlug: string; category: string;
     city: string; address: string; description: string;
     website: string; instagram: string; facebook: string;
+    logoFile: string; bannerFile: string;
     // Step 3 – Documents
-    cnic: string; cnicFile: string; businessType: string;
+    cnic: string; cnicFrontFile: string; cnicBackFile: string; businessType: string;
     ntn: string; bankName: string; accountTitle: string; iban: string;
     agreed: boolean;
 };
@@ -58,10 +59,13 @@ function validateStep(step: number, data: FormData): Errors {
         if (!data.category) errors.category = "Please select a category";
         if (!data.city.trim()) errors.city = "City is required";
         if (!data.description.trim() || data.description.length < 20) errors.description = "Description must be at least 20 characters";
+        if (!data.logoFile) errors.logoFile = "Store logo is required";
+        if (!data.bannerFile) errors.bannerFile = "Store banner is required";
     }
     if (step === 3) {
         if (!data.cnic.match(/^\d{5}-\d{7}-\d{1}$/)) errors.cnic = "Enter a valid CNIC (e.g. 12345-1234567-1)";
-        if (!data.cnicFile) errors.cnicFile = "CNIC document is required";
+        if (!data.cnicFrontFile) errors.cnicFrontFile = "CNIC front side is required";
+        if (!data.cnicBackFile) errors.cnicBackFile = "CNIC back side is required";
         if (!data.businessType) errors.businessType = "Please select a business type";
         if (!data.bankName) errors.bankName = "Please select your bank";
         if (!data.accountTitle.trim()) errors.accountTitle = "Account title is required";
@@ -80,14 +84,17 @@ export default function VendorRegisterPage() {
     const [submitting, setSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
     const [errorMessage, setErrorMessage] = useState("");
-    const [uploadingFile, setUploadingFile] = useState(false);
-    const [cnicFileUrl, setCnicFileUrl] = useState("");
+    const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+    const [logoUrl, setLogoUrl] = useState("");
+    const [bannerUrl, setBannerUrl] = useState("");
+    const [cnicFrontUrl, setCnicFrontUrl] = useState("");
+    const [cnicBackUrl, setCnicBackUrl] = useState("");
 
     const [form, setForm] = useState<FormData>({
         firstName: "", lastName: "", email: "", phone: "", password: "", confirmPassword: "",
         storeName: "", storeSlug: "", category: "", city: "", address: "", description: "",
-        website: "", instagram: "", facebook: "",
-        cnic: "", cnicFile: "", businessType: "", ntn: "", bankName: "", accountTitle: "", iban: "",
+        website: "", instagram: "", facebook: "", logoFile: "", bannerFile: "",
+        cnic: "", cnicFrontFile: "", cnicBackFile: "", businessType: "", ntn: "", bankName: "", accountTitle: "", iban: "",
         agreed: false,
     });
 
@@ -111,14 +118,15 @@ export default function VendorRegisterPage() {
 
     const back = () => { setStep((s) => s - 1); setErrors({}); };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'banner' | 'cnic-front' | 'cnic-back') => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        setUploadingFile(true);
+        setUploadingFile(type);
         try {
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('type', type); // Send document type
 
             const response = await fetch('/api/upload/cnic', {
                 method: 'POST',
@@ -131,22 +139,57 @@ export default function VendorRegisterPage() {
                 throw new Error(data.message || 'Upload failed');
             }
 
-            setCnicFileUrl(data.data.url);
-            set("cnicFile", file.name);
+            // Update the appropriate URL and form field based on type
+            switch (type) {
+                case 'logo':
+                    setLogoUrl(data.data.url);
+                    set("logoFile", file.name);
+                    break;
+                case 'banner':
+                    setBannerUrl(data.data.url);
+                    set("bannerFile", file.name);
+                    break;
+                case 'cnic-front':
+                    setCnicFrontUrl(data.data.url);
+                    set("cnicFrontFile", file.name);
+                    break;
+                case 'cnic-back':
+                    setCnicBackUrl(data.data.url);
+                    set("cnicBackFile", file.name);
+                    break;
+            }
         } catch (error) {
             console.error('File upload error:', error);
             alert('Failed to upload file. Please try again.');
-            set("cnicFile", "");
+            // Clear the appropriate field
+            switch (type) {
+                case 'logo': set("logoFile", ""); break;
+                case 'banner': set("bannerFile", ""); break;
+                case 'cnic-front': set("cnicFrontFile", ""); break;
+                case 'cnic-back': set("cnicBackFile", ""); break;
+            }
         } finally {
-            setUploadingFile(false);
+            setUploadingFile(null);
         }
     };
 
     const submit = async () => {
         const errs = validateStep(3, form);
         if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-        if (!cnicFileUrl) {
-            setErrors((prev) => ({ ...prev, cnicFile: "CNIC document is required" }));
+        if (!cnicFrontUrl || !cnicBackUrl) {
+            setErrors((prev) => ({ 
+                ...prev, 
+                cnicFrontFile: !cnicFrontUrl ? "CNIC front side is required" : prev.cnicFrontFile,
+                cnicBackFile: !cnicBackUrl ? "CNIC back side is required" : prev.cnicBackFile
+            }));
+            return;
+        }
+        if (!logoUrl || !bannerUrl) {
+            setErrors((prev) => ({ 
+                ...prev, 
+                logoFile: !logoUrl ? "Store logo is required" : prev.logoFile,
+                bannerFile: !bannerUrl ? "Store banner is required" : prev.bannerFile
+            }));
             return;
         }
         setSubmitting(true);
@@ -165,28 +208,31 @@ export default function VendorRegisterPage() {
                     password: form.password,
                     store_name: form.storeName,
                     store_slug: form.storeSlug,
-                    store_description: form.description,
-                    category: form.category,
+                    store_description: form.description || undefined,
+                    logo_url: logoUrl,
+                    banner_url: bannerUrl,
+                    category: form.category || undefined,
                     city: form.city,
-                    address: form.address,
-                    business_type: form.businessType,
-                    ntn: form.ntn,
-                    website: form.website,
-                    instagram: form.instagram,
-                    facebook: form.facebook,
+                    address: form.address || undefined,
+                    business_type: form.businessType || undefined,
+                    ntn: form.ntn || undefined,
+                    website: form.website || undefined,
+                    instagram: form.instagram || undefined,
+                    facebook: form.facebook || undefined,
                     bank_account_name: form.accountTitle,
-                    bank_account_number: form.iban.replace(/[^0-9]/g, ""),
+                    bank_account_number: form.iban.replace(/[^0-9]/g, "").slice(2), // Remove country code check digits, keep bank code + account number
                     bank_name: form.bankName,
-                    iban: form.iban,
+                    iban: form.iban || undefined,
                     cnic: form.cnic,
-                    cnic_document_url: cnicFileUrl,
+                    cnic_front_url: cnicFrontUrl,
+                    cnic_back_url: cnicBackUrl,
                 }),
             });
 
             const data = await res.json();
 
             if (!res.ok) {
-                setErrorMessage(data.message || "Failed to submit application. Please try again.");
+                setErrorMessage(data.error || data.message || "Failed to submit application. Please try again.");
                 setSubmitStatus("error");
             } else {
                 setSubmitStatus("success");
@@ -395,7 +441,7 @@ export default function VendorRegisterPage() {
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5">Store URL</label>
                                 <div className="flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-virsa-primary/30 focus-within:border-virsa-primary transition-all" style={{ borderColor: errors.storeSlug ? "#f87171" : "#e5e7eb" }}>
-                                    <span className="px-3 text-sm text-gray-400 bg-gray-50 border-r border-gray-200 py-3 whitespace-nowrap font-medium">virsa.pk/</span>
+                                    <span className="px-3 text-sm text-gray-400 bg-gray-50 border-r border-gray-200 py-3 whitespace-nowrap font-medium">virsasharedbypakistan.com/</span>
                                     <input className="flex-1 px-3 py-3 text-sm outline-none bg-white" placeholder="your-store-name" value={form.storeSlug} onChange={(e) => set("storeSlug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} />
                                 </div>
                                 {errMsg("storeSlug")}
@@ -428,6 +474,50 @@ export default function VendorRegisterPage() {
                                 <div className="flex justify-between items-center">
                                     {errMsg("description")}
                                     <span className={`text-xs ml-auto mt-1 ${form.description.length < 20 ? "text-gray-400" : "text-emerald-500"}`}>{form.description.length} / 20 min</span>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-gray-100 pt-4">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4">Store Images</p>
+                                
+                                <div className="space-y-4">
+                                    {/* Logo Upload */}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                            Store Logo <span className="text-red-500">*</span>
+                                            <span className="text-xs font-normal text-gray-500 ml-2">(Recommended: 200x200px, Square)</span>
+                                        </label>
+                                        <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${uploadingFile === 'logo' ? "border-blue-400 bg-blue-50" : form.logoFile ? "border-emerald-400 bg-emerald-50" : errors.logoFile ? "border-red-400 bg-red-50" : "border-gray-300 hover:border-virsa-primary hover:bg-virsa-primary/5"}`}>
+                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} disabled={uploadingFile === 'logo'} />
+                                            {uploadingFile === 'logo' ? (
+                                                <div className="text-center"><Loader2 className="w-8 h-8 text-blue-500 mx-auto mb-2 animate-spin" /><p className="text-sm font-bold text-blue-700">Uploading...</p></div>
+                                            ) : form.logoFile ? (
+                                                <div className="text-center"><CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" /><p className="text-sm font-bold text-emerald-700">{form.logoFile}</p><p className="text-xs text-emerald-600 mt-1">Click to change</p></div>
+                                            ) : (
+                                                <div className="text-center"><UploadCloud className="w-8 h-8 text-gray-400 mx-auto mb-2" /><p className="text-sm font-bold text-gray-600">Click to upload logo</p><p className="text-xs text-gray-400 mt-1">PNG or JPG — max 5MB</p></div>
+                                            )}
+                                        </label>
+                                        {errMsg("logoFile")}
+                                    </div>
+
+                                    {/* Banner Upload */}
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                                            Store Banner <span className="text-red-500">*</span>
+                                            <span className="text-xs font-normal text-gray-500 ml-2">(Recommended: 1200x400px, Wide)</span>
+                                        </label>
+                                        <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${uploadingFile === 'banner' ? "border-blue-400 bg-blue-50" : form.bannerFile ? "border-emerald-400 bg-emerald-50" : errors.bannerFile ? "border-red-400 bg-red-50" : "border-gray-300 hover:border-virsa-primary hover:bg-virsa-primary/5"}`}>
+                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'banner')} disabled={uploadingFile === 'banner'} />
+                                            {uploadingFile === 'banner' ? (
+                                                <div className="text-center"><Loader2 className="w-8 h-8 text-blue-500 mx-auto mb-2 animate-spin" /><p className="text-sm font-bold text-blue-700">Uploading...</p></div>
+                                            ) : form.bannerFile ? (
+                                                <div className="text-center"><CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" /><p className="text-sm font-bold text-emerald-700">{form.bannerFile}</p><p className="text-xs text-emerald-600 mt-1">Click to change</p></div>
+                                            ) : (
+                                                <div className="text-center"><UploadCloud className="w-8 h-8 text-gray-400 mx-auto mb-2" /><p className="text-sm font-bold text-gray-600">Click to upload banner</p><p className="text-xs text-gray-400 mt-1">PNG or JPG — max 5MB</p></div>
+                                            )}
+                                        </label>
+                                        {errMsg("bannerFile")}
+                                    </div>
                                 </div>
                             </div>
 
@@ -472,18 +562,41 @@ export default function VendorRegisterPage() {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Upload CNIC Copy</label>
-                                <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${uploadingFile ? "border-blue-400 bg-blue-50" : form.cnicFile ? "border-emerald-400 bg-emerald-50" : "border-gray-300 hover:border-virsa-primary hover:bg-virsa-primary/5"}`}>
-                                    <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFileUpload} disabled={uploadingFile} />
-                                    {uploadingFile ? (
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">
+                                    Upload CNIC Front Side <span className="text-red-500">*</span>
+                                    <span className="text-xs font-normal text-gray-500 ml-2">(Front side with photo)</span>
+                                </label>
+                                <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${uploadingFile === 'cnic-front' ? "border-blue-400 bg-blue-50" : form.cnicFrontFile ? "border-emerald-400 bg-emerald-50" : errors.cnicFrontFile ? "border-red-400 bg-red-50" : "border-gray-300 hover:border-virsa-primary hover:bg-virsa-primary/5"}`}>
+                                    <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, 'cnic-front')} disabled={uploadingFile === 'cnic-front'} />
+                                    {uploadingFile === 'cnic-front' ? (
                                         <div className="text-center"><Loader2 className="w-8 h-8 text-blue-500 mx-auto mb-2 animate-spin" /><p className="text-sm font-bold text-blue-700">Uploading...</p></div>
-                                    ) : form.cnicFile ? (
-                                        <div className="text-center"><CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" /><p className="text-sm font-bold text-emerald-700">{form.cnicFile}</p></div>
+                                    ) : form.cnicFrontFile ? (
+                                        <div className="text-center"><CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" /><p className="text-sm font-bold text-emerald-700">{form.cnicFrontFile}</p><p className="text-xs text-emerald-600 mt-1">Click to change</p></div>
                                     ) : (
-                                        <div className="text-center"><UploadCloud className="w-8 h-8 text-gray-400 mx-auto mb-2" /><p className="text-sm font-bold text-gray-600">Click to upload</p><p className="text-xs text-gray-400 mt-1">PNG, JPG or PDF — max 5MB</p></div>
+                                        <div className="text-center"><UploadCloud className="w-8 h-8 text-gray-400 mx-auto mb-2" /><p className="text-sm font-bold text-gray-600">Click to upload front side</p><p className="text-xs text-gray-400 mt-1">PNG, JPG or PDF — max 5MB</p></div>
                                     )}
                                 </label>
-                                {errMsg("cnicFile")}
+                                {errMsg("cnicFrontFile")}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">
+                                    Upload CNIC Back Side <span className="text-red-500">*</span>
+                                    <span className="text-xs font-normal text-gray-500 ml-2">(Back side with address)</span>
+                                </label>
+                                <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${uploadingFile === 'cnic-back' ? "border-blue-400 bg-blue-50" : form.cnicBackFile ? "border-emerald-400 bg-emerald-50" : errors.cnicBackFile ? "border-red-400 bg-red-50" : "border-gray-300 hover:border-virsa-primary hover:bg-virsa-primary/5"}`}>
+                                    <input type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => handleFileUpload(e, 'cnic-back')} disabled={uploadingFile === 'cnic-back'} />
+                                    {uploadingFile === 'cnic-back' ? (
+                                        <div className="text-center"><Loader2 className="w-8 h-8 text-blue-500 mx-auto mb-2 animate-spin" /><p className="text-sm font-bold text-blue-700">Uploading...</p></div>
+                                    ) : form.cnicBackFile ? (
+                                        <div className="text-center"><CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" /><p className="text-sm font-bold text-emerald-700">{form.cnicBackFile}</p><p className="text-xs text-emerald-600 mt-1">Click to change</p></div>
+                                    ) : (
+                                        <div className="text-center"><UploadCloud className="w-8 h-8 text-gray-400 mx-auto mb-2" /><p className="text-sm font-bold text-gray-600">Click to upload back side</p><p className="text-xs text-gray-400 mt-1">PNG, JPG or PDF — max 5MB</p></div>
+                                    )}
+                                </label>
+                                {errMsg("cnicBackFile")}
+                            </div>
                             </div>
 
                             <div>
