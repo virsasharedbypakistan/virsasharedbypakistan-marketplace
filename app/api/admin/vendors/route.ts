@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { apiSuccess, apiError, requireRole, getPagination, paginationMeta } from '@/lib/api-helpers';
+import { decryptSensitive } from '@/lib/encryption';
 
 // ── GET /api/admin/vendors — Admin vendor management ────────────────
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
         commission_type, commission_rate, average_rating, total_reviews,
         total_sales, balance, approved_by, approved_at, created_at,
         users!vendors_user_id_fkey(full_name, email),
-        vendor_bank_details(bank_name, iban, account_holder_name)
+        vendor_bank_details(bank_name, iban, account_holder_name, account_number)
       `,
         { count: 'exact' }
       );
@@ -53,8 +54,31 @@ export async function GET(request: NextRequest) {
       return apiError('Failed to fetch vendors', 500);
     }
 
+    const normalized = (vendors || []).map((vendor: any) => {
+      const bank = vendor.vendor_bank_details;
+      if (!bank) return vendor;
+
+      const safeDecrypt = (value?: string | null) => {
+        if (!value) return value;
+        try {
+          return decryptSensitive(value);
+        } catch {
+          return value;
+        }
+      };
+
+      return {
+        ...vendor,
+        vendor_bank_details: {
+          ...bank,
+          iban: safeDecrypt(bank.iban),
+          account_number: safeDecrypt(bank.account_number),
+        },
+      };
+    });
+
     return apiSuccess({
-      data: vendors || [],
+      data: normalized,
       pagination: paginationMeta(page, limit, count || 0),
     });
   } catch (err) {

@@ -1,7 +1,7 @@
-import { Search, Star, Package, ExternalLink } from "lucide-react";
+import { Star, Package, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import VendorsSearchClient from "@/components/VendorsSearchClient";
 import type { Metadata } from "next";
 
@@ -30,15 +30,22 @@ type VendorWithProducts = Vendor & {
     product_count: number;
 };
 
-async function getVendors(): Promise<VendorWithProducts[]> {
+async function getVendors(searchQuery?: string): Promise<VendorWithProducts[]> {
     try {
-        const supabase = createClient();
-        
         // Get all vendors (filter by approval_status if column exists)
-        const { data: vendors, error } = await supabase
+        let query = supabaseAdmin
             .from('vendors')
             .select('*')
             .order('average_rating', { ascending: false });
+
+        if (searchQuery) {
+            const trimmed = searchQuery.trim();
+            if (trimmed) {
+                query = query.or(`store_name.ilike.%${trimmed}%,description.ilike.%${trimmed}%`);
+            }
+        }
+
+        const { data: vendors, error } = await query;
 
         if (error) {
             console.error('Error fetching vendors:', error);
@@ -51,7 +58,7 @@ async function getVendors(): Promise<VendorWithProducts[]> {
 
         // Get product counts for each vendor
         const vendorIds = vendors.map(v => v.id);
-        const { data: productCounts } = await supabase
+        const { data: productCounts } = await supabaseAdmin
             .from('products')
             .select('vendor_id')
             .in('vendor_id', vendorIds)
@@ -74,8 +81,13 @@ async function getVendors(): Promise<VendorWithProducts[]> {
     }
 }
 
-export default async function VendorsPage() {
-    const vendors = await getVendors();
+export default async function VendorsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ q?: string }>;
+}) {
+    const { q } = await searchParams;
+    const vendors = await getVendors(q);
 
     return (
         <div className="container mx-auto px-4 py-10">
@@ -86,7 +98,7 @@ export default async function VendorsPage() {
             </div>
 
             {/* Search + Filter - Client Component */}
-            <VendorsSearchClient />
+            <VendorsSearchClient initialQuery={q || ""} />
 
             {/* Vendor Grid */}
             {vendors.length === 0 ? (
@@ -94,8 +106,12 @@ export default async function VendorsPage() {
                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Package className="w-10 h-10 text-gray-400" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Vendors Yet</h3>
-                    <p className="text-gray-500">Check back soon for amazing stores!</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                        {q ? "No stores match your search" : "No Vendors Yet"}
+                    </h3>
+                    <p className="text-gray-500">
+                        {q ? "Try a different store name or keyword." : "Check back soon for amazing stores!"}
+                    </p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

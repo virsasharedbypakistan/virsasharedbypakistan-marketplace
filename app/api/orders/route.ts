@@ -74,6 +74,7 @@ const createOrderSchema = z.object({
     province: z.string().min(2).max(100).trim(),
     postal_code: z.string().max(20).optional(),
   }),
+  contact_email: z.string().email('Invalid email').optional(),
   items: z
     .array(
       z.object({
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
       return apiError(parsed.error.issues[0].message, 400, 'VALIDATION_ERROR');
     }
 
-    const { shipping_address, items, notes } = parsed.data;
+    const { shipping_address, items, notes, contact_email } = parsed.data;
 
     // Validate all products and check stock
     const productIds = items.map((i) => i.product_id);
@@ -285,8 +286,10 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
+    const notificationEmail = contact_email || user.email;
+
     await sendEmail({
-      to: user.email,
+      to: notificationEmail,
       ...orderPlacedEmail({
         customerName: userProfile?.full_name || 'Customer',
         orderNumber: order.order_number,

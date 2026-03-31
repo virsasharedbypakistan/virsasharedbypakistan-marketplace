@@ -14,8 +14,21 @@ const vendorApplicationSchema = z.object({
   password: z.string().min(8),
   // Store info
   store_name: z.string().min(2).max(150).trim(),
+  store_slug: z
+    .string()
+    .min(2)
+    .max(150)
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
   store_description: z.string().max(5000).optional(),
+  category: z.string().max(100).optional(),
   city: z.string().min(2).max(100).trim(),
+  address: z.string().max(255).optional(),
+  business_type: z.string().max(100).optional(),
+  ntn: z.string().max(20).optional(),
+  website: z.string().url().optional(),
+  instagram: z.string().max(200).optional(),
+  facebook: z.string().max(200).optional(),
   // Bank details
   bank_account_name: z.string().min(2).max(150).trim(),
   bank_account_number: z.string().min(5).max(50).trim(),
@@ -23,7 +36,7 @@ const vendorApplicationSchema = z.object({
   iban: z.string().max(34).optional(),
   // CNIC
   cnic: z.string().min(13).max(15).trim(),
-  cnic_document_url: z.string().url().optional(),
+  cnic_document_url: z.string().url(),
 });
 
 function generateStoreSlug(storeName: string): string {
@@ -72,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate unique store slug
-    let slug = generateStoreSlug(data.store_name);
+    let slug = data.store_slug || generateStoreSlug(data.store_name);
     const { data: existingSlug } = await supabaseAdmin
       .from('vendors')
       .select('id')
@@ -110,6 +123,14 @@ export async function POST(request: NextRequest) {
           encrypted_password: encryptedPassword,
           cnic: data.cnic,
           city: data.city,
+          category: data.category,
+          address: data.address,
+          business_type: data.business_type,
+          ntn: data.ntn,
+          website: data.website,
+          instagram: data.instagram,
+          facebook: data.facebook,
+          store_slug: data.store_slug,
         },
       })
       .select('id')

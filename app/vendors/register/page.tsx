@@ -61,6 +61,7 @@ function validateStep(step: number, data: FormData): Errors {
     }
     if (step === 3) {
         if (!data.cnic.match(/^\d{5}-\d{7}-\d{1}$/)) errors.cnic = "Enter a valid CNIC (e.g. 12345-1234567-1)";
+        if (!data.cnicFile) errors.cnicFile = "CNIC document is required";
         if (!data.businessType) errors.businessType = "Please select a business type";
         if (!data.bankName) errors.bankName = "Please select your bank";
         if (!data.accountTitle.trim()) errors.accountTitle = "Account title is required";
@@ -144,6 +145,10 @@ export default function VendorRegisterPage() {
     const submit = async () => {
         const errs = validateStep(3, form);
         if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+        if (!cnicFileUrl) {
+            setErrors((prev) => ({ ...prev, cnicFile: "CNIC document is required" }));
+            return;
+        }
         setSubmitting(true);
         setErrorMessage("");
 
@@ -159,8 +164,16 @@ export default function VendorRegisterPage() {
                     phone: form.phone,
                     password: form.password,
                     store_name: form.storeName,
+                    store_slug: form.storeSlug,
                     store_description: form.description,
+                    category: form.category,
                     city: form.city,
+                    address: form.address,
+                    business_type: form.businessType,
+                    ntn: form.ntn,
+                    website: form.website,
+                    instagram: form.instagram,
+                    facebook: form.facebook,
                     bank_account_name: form.accountTitle,
                     bank_account_number: form.iban.replace(/[^0-9]/g, ""),
                     bank_name: form.bankName,
@@ -470,6 +483,7 @@ export default function VendorRegisterPage() {
                                         <div className="text-center"><UploadCloud className="w-8 h-8 text-gray-400 mx-auto mb-2" /><p className="text-sm font-bold text-gray-600">Click to upload</p><p className="text-xs text-gray-400 mt-1">PNG, JPG or PDF — max 5MB</p></div>
                                     )}
                                 </label>
+                                {errMsg("cnicFile")}
                             </div>
 
                             <div>

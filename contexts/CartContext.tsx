@@ -33,14 +33,37 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(false);
     const { user } = useAuth();
 
-    const refreshCart = useCallback(async () => {
-        if (!user) {
-            setItems([]);
-            return;
-        }
+    const ensureGuestSession = useCallback(async () => {
+        if (user) return true;
 
         try {
+            const res = await fetch("/api/auth/guest", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                alert(error.error || "Failed to start guest checkout");
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            console.error("Failed to start guest checkout:", error);
+            alert("Failed to start guest checkout");
+            return false;
+        }
+    }, [user]);
+
+    const refreshCart = useCallback(async () => {
+        try {
             const res = await fetch("/api/cart");
+            if (res.status === 401) {
+                setItems([]);
+                return;
+            }
+
             if (res.ok) {
                 const data = await res.json();
                 const cartItems = (data.data?.items || []).map((item: any) => ({
@@ -59,17 +82,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
             console.error("Failed to fetch cart:", error);
         }
-    }, [user]);
+    }, []);
 
     useEffect(() => {
         refreshCart();
     }, [refreshCart]);
 
     const addItem = useCallback(async (productId: string, quantity: number = 1) => {
-        if (!user) {
-            alert("Please login to add items to cart");
-            return;
-        }
+        const hasSession = await ensureGuestSession();
+        if (!hasSession) return;
 
         setLoading(true);
         try {
@@ -91,10 +112,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoading(false);
         }
-    }, [user, refreshCart]);
+    }, [ensureGuestSession, refreshCart]);
 
     const removeItem = useCallback(async (cartItemId: string) => {
-        if (!user) return;
+        const hasSession = await ensureGuestSession();
+        if (!hasSession) return;
 
         setLoading(true);
         try {
@@ -113,10 +135,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoading(false);
         }
-    }, [user, refreshCart]);
+    }, [ensureGuestSession, refreshCart]);
 
     const updateQty = useCallback(async (cartItemId: string, qty: number) => {
-        if (!user || qty < 1) return;
+        if (qty < 1) return;
+        const hasSession = await ensureGuestSession();
+        if (!hasSession) return;
 
         setLoading(true);
         try {
@@ -138,10 +162,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoading(false);
         }
-    }, [user, refreshCart]);
+    }, [ensureGuestSession, refreshCart]);
 
     const clearCart = useCallback(async () => {
-        if (!user) return;
+        const hasSession = await ensureGuestSession();
+        if (!hasSession) return;
 
         setLoading(true);
         try {
@@ -160,7 +185,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [ensureGuestSession]);
 
     const count = items.reduce((sum, i) => sum + i.qty, 0);
     const total = items.reduce((sum, i) => sum + i.priceNum * i.qty, 0);

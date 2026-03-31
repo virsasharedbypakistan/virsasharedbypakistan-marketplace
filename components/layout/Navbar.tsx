@@ -98,34 +98,34 @@ export default function Navbar() {
                     </form>
 
                     {/* User Actions */}
-                    <div className="flex items-center gap-3 md:gap-6 text-gray-700">
+                    <div className="flex items-center gap-4 md:gap-5 text-gray-700">
                         {/* Wishlist */}
-                        <Link href="/wishlist" className="hover:text-virsa-primary transition-colors flex flex-col items-center gap-1 relative">
-                            <div className="relative">
-                                <Heart className="w-6 h-6" />
+                        <Link href="/wishlist" className="group flex flex-col items-center gap-1 min-w-[56px] text-gray-700 hover:text-virsa-primary transition-colors">
+                            <span className="relative w-10 h-10 rounded-xl flex items-center justify-center group-hover:bg-gray-100 transition-colors">
+                                <Heart className="w-5 h-5" />
                                 {wishlistCount > 0 && (
-                                    <span className="absolute -top-1.5 -right-1.5 bg-virsa-danger text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                                    <span className="absolute -top-1 -right-1 bg-virsa-danger text-white text-[10px] w-[18px] h-[18px] rounded-full flex items-center justify-center font-bold leading-none">
                                         {wishlistCount > 9 ? "9+" : wishlistCount}
                                     </span>
                                 )}
-                            </div>
+                            </span>
                             <span className="text-[10px] hidden md:block font-medium">Wishlist</span>
                         </Link>
 
                         {/* Notifications */}
-                        <div className="flex flex-col items-center gap-1">
+                        <div className="flex flex-col items-center gap-1 min-w-[56px]">
                             <NotificationBell role="customer" />
                             <span className="text-[10px] hidden md:block font-medium">Alerts</span>
                         </div>
 
                         {/* Cart */}
-                        <Link href="/cart" className="hover:text-virsa-primary transition-colors flex flex-col items-center gap-1 relative">
-                            <div className="relative">
-                                <ShoppingCart className="w-6 h-6" />
-                                <span className="absolute -top-1.5 -right-1.5 bg-virsa-danger text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                        <Link href="/cart" className="group flex flex-col items-center gap-1 min-w-[56px] text-gray-700 hover:text-virsa-primary transition-colors">
+                            <span className="relative w-10 h-10 rounded-xl flex items-center justify-center group-hover:bg-gray-100 transition-colors">
+                                <ShoppingCart className="w-5 h-5" />
+                                <span className="absolute -top-1 -right-1 bg-virsa-danger text-white text-[10px] w-[18px] h-[18px] rounded-full flex items-center justify-center font-bold leading-none">
                                     {cartCount > 9 ? "9+" : cartCount}
                                 </span>
-                            </div>
+                            </span>
                             <span className="text-[10px] hidden md:block font-medium">Cart</span>
                         </Link>
 
@@ -134,15 +134,17 @@ export default function Navbar() {
                             <div className="relative">
                                 <button
                                     onClick={() => setShowUserMenu(!showUserMenu)}
-                                    className="hover:text-virsa-primary transition-colors flex flex-col items-center gap-1"
+                                    className="group flex flex-col items-center gap-1 min-w-[56px] text-gray-700 hover:text-virsa-primary transition-colors"
                                 >
-                                    {profile.avatar_url ? (
-                                        <div className="w-6 h-6 rounded-full overflow-hidden">
-                                            <Image src={profile.avatar_url} alt={profile.full_name} width={24} height={24} />
-                                        </div>
-                                    ) : (
-                                        <User className="w-6 h-6" />
-                                    )}
+                                    <span className="w-10 h-10 rounded-xl flex items-center justify-center group-hover:bg-gray-100 transition-colors">
+                                        {profile.avatar_url ? (
+                                            <span className="w-5 h-5 rounded-full overflow-hidden">
+                                                <Image src={profile.avatar_url} alt={profile.full_name} width={20} height={20} />
+                                            </span>
+                                        ) : (
+                                            <User className="w-5 h-5" />
+                                        )}
+                                    </span>
                                     <span className="text-[10px] hidden md:block font-medium">{profile.full_name.split(' ')[0]}</span>
                                 </button>
 
@@ -170,8 +172,10 @@ export default function Navbar() {
                                 )}
                             </div>
                         ) : (
-                            <Link href="/login" className="hover:text-virsa-primary transition-colors flex flex-col items-center gap-1">
-                                <User className="w-6 h-6" />
+                            <Link href="/login" className="group flex flex-col items-center gap-1 min-w-[56px] text-gray-700 hover:text-virsa-primary transition-colors">
+                                <span className="w-10 h-10 rounded-xl flex items-center justify-center group-hover:bg-gray-100 transition-colors">
+                                    <User className="w-5 h-5" />
+                                </span>
                                 <span className="text-[10px] hidden md:block font-medium">Account</span>
                             </Link>
                         )}

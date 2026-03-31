@@ -17,6 +17,13 @@ export const authRegisterRateLimit = new Ratelimit({
   prefix: 'rl:auth:register',
 });
 
+// Guest auth: 10 req / 15 min per IP
+export const authGuestRateLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.fixedWindow(10, '15 m'),
+  prefix: 'rl:auth:guest',
+});
+
 // Auth reset: 3 req / 1 hour per IP
 export const authResetRateLimit = new Ratelimit({
   redis,

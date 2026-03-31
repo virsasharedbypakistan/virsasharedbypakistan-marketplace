@@ -142,15 +142,25 @@ function DetailModal({
                                     <span className="font-mono text-gray-800 font-medium text-xs">{app.cnic}</span>
                                 </div>
                                 {app.cnicDocumentUrl ? (
-                                    <a 
-                                        href={app.cnicDocumentUrl} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="flex items-center justify-center gap-2 bg-virsa-primary text-white rounded-lg p-2.5 mt-2 hover:bg-virsa-primary/90 transition-colors text-xs font-bold"
-                                    >
-                                        <Eye className="w-3.5 h-3.5" />
-                                        View CNIC Document
-                                    </a>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                        <a 
+                                            href={app.cnicDocumentUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center gap-2 bg-virsa-primary text-white rounded-lg p-2.5 hover:bg-virsa-primary/90 transition-colors text-xs font-bold"
+                                        >
+                                            <Eye className="w-3.5 h-3.5" />
+                                            View
+                                        </a>
+                                        <a
+                                            href={app.cnicDocumentUrl}
+                                            download
+                                            className="flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 rounded-lg p-2.5 hover:bg-gray-50 transition-colors text-xs font-bold"
+                                        >
+                                            <Download className="w-3.5 h-3.5" />
+                                            Download
+                                        </a>
+                                    </div>
                                 ) : (
                                     <div className="bg-gray-100 border border-gray-200 rounded-lg p-2 mt-2">
                                         <p className="text-xs text-gray-600 flex items-center gap-1">
@@ -277,16 +287,18 @@ export default function AdminApplicationsPage() {
                 const transformedApps: Application[] = (data.data?.data || []).map((vendor: any) => ({
                     id: vendor.id,
                     storeName: vendor.store_name,
-                    category: "General", // Not stored in vendors table
+                    category: vendor.metadata?.category || "General",
                     ownerName: vendor.metadata?.first_name && vendor.metadata?.last_name 
                         ? `${vendor.metadata.first_name} ${vendor.metadata.last_name}`
                         : vendor.users?.full_name || "N/A",
                     email: vendor.email,
                     phone: vendor.phone || "N/A",
                     city: vendor.metadata?.city || "N/A",
-                    businessType: "Individual / Sole Proprietor", // Not stored in vendors table
+                    businessType: vendor.metadata?.business_type || "Individual / Sole Proprietor",
                     cnic: vendor.metadata?.cnic || "N/A",
-                    cnicDocumentUrl: vendor.cnic_document_url,
+                    cnicDocumentUrl: vendor.cnic_document_url
+                        ? `/api/admin/vendors/${vendor.id}/document`
+                        : undefined,
                     bankName: vendor.vendor_bank_details?.bank_name || "N/A",
                     iban: vendor.vendor_bank_details?.iban || "N/A",
                     description: vendor.description || "No description provided.",
@@ -297,13 +309,13 @@ export default function AdminApplicationsPage() {
                         hour: "numeric",
                         minute: "2-digit",
                     }),
-                    status: vendor.status === "pending" ? "Pending" : 
-                            vendor.status === "active" ? "Approved" : 
+                        status: vendor.status === "pending" ? "Pending" : 
+                            vendor.status === "approved" ? "Approved" : 
                             vendor.status === "rejected" ? "Rejected" : "Pending",
                     reviewNote: vendor.rejection_reason,
                     socialLinks: {
-                        website: "",
-                        instagram: "",
+                        website: vendor.metadata?.website || "",
+                        instagram: vendor.metadata?.instagram || "",
                     },
                     docsUploaded: !!vendor.cnic_document_url,
                     logo: vendor.logo_url || "/images/vendors/vendor1.png"

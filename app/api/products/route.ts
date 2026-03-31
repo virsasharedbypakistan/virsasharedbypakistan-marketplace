@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const minPrice = searchParams.get('min_price');
     const maxPrice = searchParams.get('max_price');
+    const minRating = searchParams.get('min_rating');
     const sort = searchParams.get('sort') || 'newest';
     const featured = searchParams.get('featured');
     const onSale = searchParams.get('on_sale');
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
     if (vendorId) query = query.eq('vendor_id', vendorId);
     if (minPrice) query = query.gte('price', parseFloat(minPrice));
     if (maxPrice) query = query.lte('price', parseFloat(maxPrice));
+    if (minRating) query = query.gte('average_rating', parseFloat(minRating));
     if (featured === 'true') query = query.eq('is_featured', true);
     if (onSale === 'true') query = query.not('sale_price', 'is', null);
 

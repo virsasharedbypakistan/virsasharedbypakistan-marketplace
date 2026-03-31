@@ -11,7 +11,7 @@ export default function CartPage() {
     const [promoCode, setPromoCode] = useState("");
     const [promoApplied, setPromoApplied] = useState(false);
 
-    const shipping = items.length > 0 ? 200 : 0;
+    const shipping = items.length > 0 ? 150 : 0;
     const discount = promoApplied ? total * 0.1 : 0;
     const grandTotal = total + shipping - discount;
 

@@ -1,36 +1,74 @@
 "use client";
 
-import { useState } from "react";
-import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, X } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function VendorsSearchClient() {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [category, setCategory] = useState("all");
+type Props = {
+    initialQuery?: string;
+};
+
+export default function VendorsSearchClient({ initialQuery = "" }: Props) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const [searchTerm, setSearchTerm] = useState(initialQuery);
+
+    useEffect(() => {
+        setSearchTerm(initialQuery);
+    }, [initialQuery]);
+
+    const submitSearch = (value: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        const trimmed = value.trim();
+
+        if (trimmed) {
+            params.set("q", trimmed);
+        } else {
+            params.delete("q");
+        }
+
+        const queryString = params.toString();
+        router.push(queryString ? `/vendors?${queryString}` : "/vendors");
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        submitSearch(searchTerm);
+    };
+
+    const handleClear = () => {
+        setSearchTerm("");
+        submitSearch("");
+    };
 
     return (
-        <div className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto mb-10">
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto mb-10">
             <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input 
-                    type="text" 
-                    placeholder="Search stores by name or category..." 
+                <input
+                    type="text"
+                    placeholder="Search stores by name or description..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-virsa-primary focus:ring-2 focus:ring-virsa-primary/10 text-sm" 
+                    className="w-full pl-11 pr-12 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-virsa-primary focus:ring-2 focus:ring-virsa-primary/10 text-sm"
                 />
+                {searchTerm && (
+                    <button
+                        type="button"
+                        onClick={handleClear}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        aria-label="Clear search"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
             </div>
-            <select 
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="px-4 py-3 border border-gray-200 rounded-2xl text-sm font-medium bg-white appearance-none focus:outline-none focus:border-virsa-primary cursor-pointer"
+            <button
+                type="submit"
+                className="px-5 py-3 bg-virsa-primary text-white rounded-2xl text-sm font-bold hover:bg-virsa-primary/90 transition-colors"
             >
-                <option value="all">All Categories</option>
-                <option value="electronics">Electronics</option>
-                <option value="fashion">Fashion</option>
-                <option value="home">Home & Kitchen</option>
-                <option value="beauty">Beauty & Health</option>
-                <option value="sports">Sports</option>
-            </select>
-        </div>
+                Search
+            </button>
+        </form>
     );
 }
