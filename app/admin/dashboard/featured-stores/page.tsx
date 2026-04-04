@@ -30,10 +30,12 @@ export default function AdminFeaturedStoresPage() {
 
     const fetchVendors = async () => {
         try {
-            const response = await fetch("/api/admin/vendors");
+            const response = await fetch("/api/admin/vendors?status=approved&limit=200");
             if (response.ok) {
                 const result = await response.json();
-                setVendors(result.data || []);
+                const payload = result.data;
+                const vendorsList = Array.isArray(payload) ? payload : payload?.data || [];
+                setVendors(vendorsList);
             }
         } catch (error) {
             console.error("Failed to fetch vendors:", error);
