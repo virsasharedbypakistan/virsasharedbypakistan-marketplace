@@ -2,12 +2,24 @@
 import Link from "next/link";
 import { CopyPlus, Store, Users, ShoppingBag, LineChart, Settings, LogOut, Bell, Search, Building2, Zap, Star, Sparkles } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AdminDashboardLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const { profile, user, signOut } = useAuth();
+
+    const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Admin";
+    const displayEmail = profile?.email || user?.email || "";
+    const avatarInitial = displayName.trim().charAt(0).toUpperCase() || "A";
+
+    const handleLogout = async () => {
+        await signOut();
+        window.location.href = "/login";
+    };
+
     const navItems = [
         { name: "Dashboard", href: "/admin/dashboard", icon: CopyPlus },
         { name: "Vendors", href: "/admin/dashboard/vendors", icon: Store },
@@ -52,20 +64,21 @@ export default function AdminDashboardLayout({
                 <div className="mt-auto p-4 border-t border-[#E2E8F0]">
                     <div className="flex items-center justify-between px-2 mb-4">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-slate-200"></div>
+                            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-[#334155]">{avatarInitial}</div>
                             <div>
-                                <p className="text-sm font-bold text-[#0F172A]">Super Admin</p>
-                                <p className="text-xs font-medium text-[#64748B]">admin@virsa.com</p>
+                                <p className="text-sm font-bold text-[#0F172A]">{displayName}</p>
+                                <p className="text-xs font-medium text-[#64748B]">{displayEmail || "No email"}</p>
                             </div>
                         </div>
                     </div>
-                    <Link
-                        href="/login"
+                    <button
+                        type="button"
+                        onClick={handleLogout}
                         className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold text-[#EF4444] bg-[#FEF2F2] hover:bg-[#FEE2E2] transition-colors"
                     >
                         <LogOut className="w-4 h-4" />
                         Logout
-                    </Link>
+                    </button>
                 </div>
             </aside>
 
