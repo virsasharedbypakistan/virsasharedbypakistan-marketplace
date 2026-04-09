@@ -79,22 +79,11 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Banner */}
-      <section className="relative bg-virsa-primary text-white overflow-hidden">
-        <Image src="/hero_banner.jpeg" alt="Virsa Marketplace" fill className="object-cover object-center" priority quality={90} />
-        <div className="absolute inset-0 bg-gradient-to-r from-virsa-primary/90 via-virsa-primary/70 to-virsa-primary/40 z-10"></div>
+      <section className="relative bg-gray-100 text-white overflow-hidden h-[400px] md:h-[500px] lg:h-[600px]">
+        <Image src="/hero_banner.jpeg" alt="Virsa Marketplace" fill className="object-cover object-top" priority quality={90} />
 
-        <div className="container mx-auto px-4 py-28 md:py-40 relative z-20">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 py-1.5 px-4 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-white text-xs font-bold mb-8 tracking-widest uppercase shadow-xl">
-              <span className="w-2 h-2 rounded-full bg-virsa-secondary animate-pulse"></span>
-              100% Secure Marketplace
-            </div>
-            <h1 className="text-5xl md:text-7xl font-extrabold mb-6 leading-[1.1] tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-virsa-light">
-              Discover Authentic Products From Trusted Vendors
-            </h1>
-            <p className="text-xl md:text-2xl mb-12 text-gray-200 max-w-2xl font-light leading-relaxed">
-              Shop thousands of high-quality items across multiple categories with buyer protection guaranteed every step of the way.
-            </p>
+        <div className="absolute inset-0 flex items-end pb-12 md:pb-16 z-20">
+          <div className="container mx-auto px-4">
             <div className="flex flex-col sm:flex-row gap-5">
               <Link href="/products" className="bg-gradient-to-r from-virsa-secondary to-virsa-accent hover:from-virsa-accent hover:to-virsa-secondary text-virsa-primary font-bold py-4 px-10 rounded-full transition-all duration-300 flex items-center justify-center group shadow-[0_8px_30px_rgba(255,210,66,0.3)] hover:shadow-[0_8px_40px_rgba(255,210,66,0.5)] hover:-translate-y-1">
                 Start Shopping

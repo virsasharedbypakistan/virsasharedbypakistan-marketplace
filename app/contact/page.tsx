@@ -28,7 +28,10 @@ export default function ContactPage() {
                         </div>
                         <h3 className="font-bold text-gray-900 mb-1">Email Us</h3>
                         <p className="text-sm text-gray-500 mb-2">We&apos;ll reply within 24 hours</p>
-                        <a href="mailto:virsasharedbypakistan@gmail.com" className="text-virsa-primary font-bold text-sm hover:underline">virsasharedbypakistan@gmail.com</a>
+                        <div className="space-y-1">
+                            <a href="mailto:support@virsasharedbypakistan.com" className="text-virsa-primary font-bold text-sm hover:underline block">support@virsasharedbypakistan.com</a>
+                            <a href="mailto:virsasharedbypakistan@gmail.com" className="text-gray-600 text-xs hover:underline block">virsasharedbypakistan@gmail.com</a>
+                        </div>
                     </div>
 
                     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">

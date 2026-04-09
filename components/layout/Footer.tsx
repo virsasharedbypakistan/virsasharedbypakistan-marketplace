@@ -74,9 +74,12 @@ export default function Footer() {
                                 <Phone className="w-5 h-5 text-virsa-primary mr-3" />
                                 <span className="text-gray-600 text-sm">+92 318 5196832</span>
                             </li>
-                            <li className="flex items-center">
-                                <Mail className="w-5 h-5 text-virsa-primary mr-3" />
-                                <span className="text-gray-600 text-sm">virsasharedbypakistan@gmail.com</span>
+                            <li className="flex items-start">
+                                <Mail className="w-5 h-5 text-virsa-primary mr-3 mt-0.5" />
+                                <div className="flex flex-col">
+                                    <a href="mailto:support@virsasharedbypakistan.com" className="text-gray-600 text-sm hover:text-virsa-primary transition-colors">support@virsasharedbypakistan.com</a>
+                                    <a href="mailto:virsasharedbypakistan@gmail.com" className="text-gray-500 text-xs hover:text-virsa-primary transition-colors">virsasharedbypakistan@gmail.com</a>
+                                </div>
                             </li>
                         </ul>
                     </div>
