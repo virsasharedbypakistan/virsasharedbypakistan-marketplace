@@ -134,7 +134,10 @@ export default function ProductsClient() {
                 const res = await fetch("/api/categories");
                 if (res.ok) {
                     const data = await res.json();
-                    setCategories(data.data || []);
+                    const sortedCategories = (data.data || []).sort((a: Category, b: Category) => 
+                        a.name.localeCompare(b.name)
+                    );
+                    setCategories(sortedCategories);
                 }
             } catch (error) {
                 console.error("Failed to fetch categories:", error);
@@ -271,35 +274,63 @@ export default function ProductsClient() {
                             <div className="mb-8">
                                 <h3 className="font-bold text-gray-900 mb-4">Price Range</h3>
                                 <div className="space-y-4">
+                                    {/* Current Range Display */}
+                                    <div className="flex items-center justify-between text-sm mb-2">
+                                        <span className="text-gray-600 font-medium">
+                                            Rs {minPrice || '0'}
+                                        </span>
+                                        <span className="text-gray-400">to</span>
+                                        <span className="text-gray-600 font-medium">
+                                            Rs {maxPrice || '200,000'}
+                                        </span>
+                                    </div>
+                                    
+                                    {/* Slider */}
                                     <input
                                         type="range"
                                         min="0"
                                         max="200000"
+                                        step="1000"
                                         value={maxPrice ? Number(maxPrice) : 200000}
                                         onChange={(e) => setMaxPrice(e.target.value)}
                                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-virsa-primary"
+                                        aria-label="Maximum price"
                                     />
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex-1 relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rs </span>
-                                            <input
-                                                type="number"
-                                                placeholder="Min"
-                                                value={minPrice}
-                                                onChange={(e) => setMinPrice(e.target.value)}
-                                                className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-virsa-primary"
-                                            />
+                                    
+                                    {/* Input Fields */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1">
+                                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Minimum</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 text-sm font-medium">Rs</span>
+                                                <input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    value={minPrice}
+                                                    onChange={(e) => setMinPrice(e.target.value)}
+                                                    min="0"
+                                                    max={maxPrice || 200000}
+                                                    className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/30 focus:border-virsa-primary transition-all"
+                                                    aria-label="Minimum price"
+                                                />
+                                            </div>
                                         </div>
-                                        <span className="text-gray-400">-</span>
-                                        <div className="flex-1 relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rs </span>
-                                            <input
-                                                type="number"
-                                                placeholder="Max"
-                                                value={maxPrice}
-                                                onChange={(e) => setMaxPrice(e.target.value)}
-                                                className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-virsa-primary"
-                                            />
+                                        <div className="text-gray-400 font-bold pt-6">—</div>
+                                        <div className="flex-1">
+                                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Maximum</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-700 text-sm font-medium">Rs</span>
+                                                <input
+                                                    type="number"
+                                                    placeholder="200000"
+                                                    value={maxPrice}
+                                                    onChange={(e) => setMaxPrice(e.target.value)}
+                                                    min={minPrice || 0}
+                                                    max="200000"
+                                                    className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-virsa-primary/30 focus:border-virsa-primary transition-all"
+                                                    aria-label="Maximum price"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

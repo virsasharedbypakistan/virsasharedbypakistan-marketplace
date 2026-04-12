@@ -151,7 +151,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
     return {
         title: `${vendor.store_name} - Virsa Marketplace`,
-        description: vendor.store_description || `Shop from ${vendor.store_name} on Virsa Marketplace`,
+        description: vendor.store_description || `Browse products from ${vendor.store_name} on Virsa Marketplace`,
     };
 }
 

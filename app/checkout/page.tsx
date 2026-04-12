@@ -150,7 +150,7 @@ export default function CheckoutPage() {
                                     onClick={() => router.push("/products")}
                                     className="w-full py-3 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700"
                                 >
-                                    Continue shopping
+                                    Continue browsing
                                 </button>
                             </div>
                         </div>

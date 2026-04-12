@@ -123,7 +123,7 @@ export default function CustomerWishlistPage() {
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Your wishlist is empty</h2>
                     <p className="text-gray-500 mb-8 max-w-md">Looks like you haven&apos;t added anything to your wishlist yet. Discover amazing products and save them for later.</p>
                     <Link href="/products" className="px-8 py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-virsa-primary transition-all duration-300 shadow-lg hover:shadow-virsa-primary/25 hover:-translate-y-0.5">
-                        Start Shopping
+                        Browse Products
                     </Link>
                 </div>
             )}

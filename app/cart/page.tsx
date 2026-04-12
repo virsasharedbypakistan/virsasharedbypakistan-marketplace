@@ -39,7 +39,7 @@ export default function CartPage() {
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-                        Shopping Cart <span className="text-gray-400 font-medium text-xl ml-2">({count} items)</span>
+                        Cart <span className="text-gray-400 font-medium text-xl ml-2">({count} items)</span>
                     </h1>
                     <button onClick={clearCart} className="text-sm text-red-500 font-bold hover:text-red-600 flex items-center gap-1">
                         <Trash2 className="w-4 h-4" /> Clear All
@@ -133,7 +133,7 @@ export default function CartPage() {
 
                         <div className="mt-6">
                             <Link href="/products" className="text-virsa-primary font-bold hover:underline flex items-center gap-2">
-                                ← Continue Shopping
+                                ← Continue Browsing
                             </Link>
                         </div>
                     </div>

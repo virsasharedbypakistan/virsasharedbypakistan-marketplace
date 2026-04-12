@@ -324,7 +324,7 @@ export default function VendorRegisterPage() {
 
     /* ─── Main Form ─────────────────────────────────────────── */
     const inputCls = (field: keyof FormData) =>
-        `w-full px-4 py-3 border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${errors[field] ? "border-red-400 bg-red-50 focus:ring-red-300" : "border-gray-200 bg-gray-50 focus:bg-white focus:ring-virsa-primary/30 focus:border-virsa-primary"}`;
+        `w-full px-4 py-3 border rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 transition-all ${errors[field] ? "border-red-400 bg-red-50 focus:ring-red-300" : "border-gray-300 bg-white focus:ring-virsa-primary/30 focus:border-virsa-primary"}`;
 
     const errMsg = (field: keyof FormData) =>
         errors[field] ? <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors[field]}</p> : null;
@@ -690,7 +690,7 @@ export default function VendorRegisterPage() {
 
                 <div className="mt-4 pt-4 border-t border-gray-200">
                     <p className="text-center text-sm text-gray-600 mb-3">
-                        Just want to shop?
+                        Just want to browse products?
                     </p>
                     <Link 
                         href="/register" 

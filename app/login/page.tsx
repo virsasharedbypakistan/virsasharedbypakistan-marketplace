@@ -244,7 +244,7 @@ export default function LoginPage() {
                             <User className="w-5 h-5 text-virsa-primary" />
                         </div>
                         <span className="text-sm font-bold text-gray-900">Sign up as Customer</span>
-                        <span className="text-xs text-gray-500 mt-0.5">Start shopping</span>
+                        <span className="text-xs text-gray-500 mt-0.5">Start browsing</span>
                     </Link>
                     
                     <Link 

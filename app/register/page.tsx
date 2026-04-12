@@ -95,7 +95,7 @@ export default function RegisterPage() {
                         Create your account
                     </h2>
                     <p className="mt-2 text-sm text-gray-500">
-                        Join Virsa Marketplace and start shopping today
+                        Join Virsa Marketplace and start browsing today
                     </p>
                 </div>
 

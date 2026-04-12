@@ -246,7 +246,7 @@ export default function CustomerDashboardPage() {
                                 <h3 className="text-xl font-bold text-gray-900 mb-2">Added to Cart!</h3>
                                 <p className="text-gray-500 text-sm mb-6">{buyAgainModal.item.name} has been added to your cart.</p>
                                 <button onClick={() => setBuyAgainModal({ open: false, item: null })} className="w-full py-3 rounded-xl bg-virsa-primary text-white font-bold hover:bg-virsa-primary/90 transition-colors">
-                                    Continue Shopping
+                                    Continue Browsing
                                 </button>
                             </div>
                         ) : (

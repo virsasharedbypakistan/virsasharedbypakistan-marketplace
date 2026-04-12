@@ -82,7 +82,7 @@ export function orderPlacedEmail(data: {
         <p>You can track your order status here:</p>
         <a href="${data.orderUrl}" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 10px 0;">View Order</a>
         <p style="margin-top: 30px; color: #6b7280; font-size: 14px;">
-          Thank you for shopping with Virsa!
+          Thank you for choosing Virsa!
         </p>
       </div>
     `,

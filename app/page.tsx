@@ -58,7 +58,10 @@ export default function Home() {
 
         if (categoriesRes.ok) {
           const data = await categoriesRes.json();
-          setCategories(data.data || []);
+          const sortedCategories = (data.data || []).sort((a: Category, b: Category) => 
+            a.name.localeCompare(b.name)
+          );
+          setCategories(sortedCategories);
         }
 
         if (vendorsRes.ok) {
@@ -86,7 +89,7 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <div className="flex flex-col sm:flex-row gap-5">
               <Link href="/products" className="bg-gradient-to-r from-virsa-secondary to-virsa-accent hover:from-virsa-accent hover:to-virsa-secondary text-virsa-primary font-bold py-4 px-10 rounded-full transition-all duration-300 flex items-center justify-center group shadow-[0_8px_30px_rgba(255,210,66,0.3)] hover:shadow-[0_8px_40px_rgba(255,210,66,0.5)] hover:-translate-y-1">
-                Start Shopping
+                Browse Products
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
               </Link>
               <Link href="/vendors" className="bg-white/5 hover:bg-white/10 backdrop-blur-md text-white font-bold py-4 px-10 rounded-full border border-white/20 transition-all duration-300 flex items-center justify-center hover:-translate-y-1">
@@ -132,12 +135,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Shop by Category */}
+      {/* Browse by Category */}
       <section className="py-20 md:py-32 bg-gray-50/50">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
             <div>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">Shop by Category</h2>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">Browse by Category</h2>
               <p className="text-gray-500 text-lg">Find exactly what you&apos;re looking for</p>
             </div>
             <Link href="/categories" className="inline-flex text-virsa-primary font-bold hover:text-virsa-primary/80 transition-colors items-center group bg-virsa-primary/5 px-6 py-3 rounded-full">
